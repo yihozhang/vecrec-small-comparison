@@ -1,0 +1,10 @@
+/vec-rec/
+
+# Generated kernel headers and compiled benchmark binaries
+/generated/
+/build/
+
+# Python
+__pycache__/
+*.py[oc]
+.venv/

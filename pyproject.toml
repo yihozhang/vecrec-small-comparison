@@ -1,0 +1,18 @@
+[project]
+name = "vecrec-small-comparison"
+version = "0.1.0"
+description = "Benchmark VecRec-generated kernels against efficient C++ serial loops."
+requires-python = ">=3.10"
+dependencies = [
+    "vecrec",
+    "numpy>=2.2.6",
+]
+
+# This project is a workspace driver, not an installable package.
+[tool.uv]
+package = false
+
+# Use the vendored VecRec checkout as an editable path dependency so the kernel
+# generator (scripts/gen_kernels.py) can import the vecrec library.
+[tool.uv.sources]
+vecrec = { path = "vec-rec", editable = true }
