@@ -1,21 +1,25 @@
-// Double exponential smoothing (Holt's), output = level l(x).  (1D)
-// Rewritten so both states depend only on t-1 (matches the VecRec mutual recurrence):
-//   l_t = (1-a) l_{t-1} + (1-a) b_{t-1} + a    g_t
-//   b_t = -a*B l_{t-1} + (1-a*B) b_{t-1} + a*B g_t      (a=alpha, B=beta)
+// Double exponential smoothing (Holt's linear method), output = level l(x).  (1D)
+// The serial baseline is the CANONICAL textbook form, in which the trend b_t
+// depends on the *current* level l_t:
+//   l_t = a*g_t + (1-a)*(l_{t-1} + b_{t-1})
+//   b_t = B*(l_t - l_{t-1}) + (1-B)*b_{t-1}            (a=alpha, B=beta)
+// VecRec cannot express a state at t depending on another state at t (only on
+// t-1), so its kernel uses an algebraically-equivalent 2x2 mutual recurrence that
+// substitutes l_t out of b_t's equation (see specs/registry.py). Keeping the
+// serial in the ORIGINAL, un-rewritten form is deliberate: the correctness check
+// then verifies the VecRec rewrite really is equivalent to Holt's method, rather
+// than just being self-consistent with its own rewrite.
 #include "bench.hpp"
 #include "double_exp_smoothing.h"
 
 static void serial(const float* g, float* out, int num_rows, int row_size) {
   const size_t N = (size_t)num_rows * (size_t)row_size;
   const float alpha = 0.5f, beta = 0.3f;
-  const float oma = 1.0f - alpha;  // 0.5
-  const float ab = alpha * beta;   // 0.15
   float l = 0.0f, b = 0.0f;
   for (size_t i = 0; i < N; ++i) {
-    float ln = oma * l + oma * b + alpha * g[i];
-    float bn = -ab * l + (1.0f - ab) * b + ab * g[i];
-    l = ln;
-    b = bn;
+    float l_prev = l;
+    l = alpha * g[i] + (1.0f - alpha) * (l_prev + b);  // level
+    b = beta * (l - l_prev) + (1.0f - beta) * b;        // trend (uses current level l)
     out[i] = l;
   }
 }

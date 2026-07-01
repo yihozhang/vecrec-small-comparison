@@ -95,7 +95,7 @@ numbers — timings vary with machine load):
 | benchmark | type | opt/serial | opt/baseline | baseline/serial | status |
 |---|---|---|---|---|---|
 | exponential-smoothing | 1D arith | ~7.8× | ~6.4× | 1.22× | PASS |
-| double-exp-smoothing (Holt's) | 1D arith (2×2 mutual) | ~5.2× | ~6.1× | 0.86× | PASS |
+| double-exp-smoothing (Holt's) | 1D arith (2×2 mutual) | ~10.1× | ~6.1× | 1.66× | PASS |
 | box-filter-sat | 2D arith | ~6.2× | ~6.0× | 1.03× | PASS |
 | repeated-box-filter | 2D arith (3-pass SAT) | ~11.7× | ~9.4× | 1.25× | PASS (10% tol) |
 | first-order-high-pass | 1D arith | ~10.6× | ~7.5× | 1.41× | PASS |
@@ -111,10 +111,10 @@ With `-ffast-math` (FMA contraction enabled) and the codegen fix that stops the 
 baseline from materializing a wide vector load and immediately splitting it into lanes, the
 VecRec **baseline** beats (or ties) the serial loop on most kernels (`baseline/serial ≳ 1`) —
 i.e. codegen's register tiling/unrolling alone, before any optimization, already wins. The
-exceptions (`< 1`) are double-exp-smoothing (a coupled 2-variable mutual recurrence) and
-distance-transform (where `-ffast-math` also lets the compiler vectorize the serial min-plus
-loop); the time-varying kernels sit near `1.0` (their per-sample coefficient loads leave little
-for codegen alone to win). Either way `opt/baseline` isolates a further gain from VecRec's
+main exception (`< 1`) is distance-transform (where `-ffast-math` also lets the compiler
+vectorize the serial min-plus loop); the time-varying kernels sit near `1.0` (their per-sample
+coefficient loads leave little for codegen alone to win). Either way `opt/baseline` isolates a
+further gain from VecRec's
 optimization — up to ~5–9× on the time-invariant filters, ~1.8–3× on the time-varying ones.
 Correctness compares each VecRec kernel against the serial loop with an absolute-or-relative
 tolerance (both built with `-ffast-math`); the baseline is usually numerically closer to serial
