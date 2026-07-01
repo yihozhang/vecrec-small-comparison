@@ -28,6 +28,7 @@ from vecrec.expr import (
     SignalVector,
     TIKernel,
     TIKernel2D,
+    TVKernel,
     Type,
     Var,
     Var2D,
@@ -35,6 +36,8 @@ from vecrec.expr import (
     with_types,
 )
 from vecrec.expr.base import SignalExpr, SignalExpr2D
+from vecrec.expr.signal import ComputedSignal2D
+from vecrec.expr.signal_ops import Ith, PointwiseMul, SSub
 from vecrec.util import ElementType
 
 INF = float("inf")
@@ -42,11 +45,12 @@ INF = float("inf")
 
 @dataclass(frozen=True)
 class Spec:
-    name: str          # benchmark name (hyphenated)
+    name: str          # benchmark name / slug (hyphenated) — dict key, CLI arg, CSV key
     kernel_name: str   # C++ struct / header name (underscores)
     dim: str           # "1d" or "2d" — informational
     semiring: str      # "arith" | "tropmin" — informational
     build_expr: Optional[Callable[[], "SignalExpr | SignalExpr2D"]]
+    display_name: str = ""  # human-readable name for display (e.g. "Exponential Smoothing")
     description: str = ""
     note: str = ""     # e.g. why a benchmark is unsupported
 
@@ -130,6 +134,80 @@ def _recursive_gaussian() -> SignalExpr:
         )
 
 
+# ── 1D time-varying (non-uniform) recurrences ─────────────────────────────────
+
+def _nonuniform_recursive_filter() -> SignalExpr:
+    # vec-rec/benchmarks/arith/second_order_tv.py
+    # f(x) = a(x)*f(x-1) + b(x)*f(x-2) + g(x)  — coefficients vary per sample.
+    # Driven by an input stream g so it is a genuine (BIBO-stable) filter; the
+    # benchmark keeps |a|+|b| < 1 so the time-varying recurrence stays bounded.
+    with with_types(Type.Arith, ElementType.Float):
+        return Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("g"))
+
+
+# w(x) = 1/x is a pure function of stream position, so instead of feeding it as a
+# materialized input array we compute it on the fly with a ComputedSignal2D whose
+# C++ struct tracks the column position and emits a fully-vectorized reciprocal
+# (one vdivps/vdivpd per run() — no memory traffic for w). Instantiated by codegen
+# as WelfordWeight2D<vec_type, n_rows, block_size, block_row>; used via Ith(_,0) as
+# a 1D signal. x is 1-based (element i => x = i+1).
+WELFORD_W_PRELUDE = r"""
+template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
+struct WelfordWeight2D {
+    using elt_type = typename ElementType<vec_type>::type;
+    static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    int my_col;
+    WelfordWeight2D() : my_col(0) {}
+    template <typename Reg_t>
+    inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
+        vec_type wv;
+        if constexpr (lanes == 1) {
+            wv = (elt_type)1 / (elt_type)(my_col + 1);
+        } else {
+            vec_type posv;
+            _Pragma("unroll") for (int k = 0; k < lanes; k++) posv[k] = (elt_type)(my_col + 1 + k);
+            wv = (elt_type)1 / posv;   // fully-vectorized reciprocal
+        }
+        _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = wv;
+        my_col += lanes;
+    }
+    void reset_and_next_row() { my_col = 0; }
+};
+"""
+
+
+def _welford_mean() -> SignalExpr:
+    # Welford running mean: M(x) = M(x-1) + (a(x) - M(x-1)) / x
+    #                            = (1 - w(x))*M(x-1) + w(x)*a(x),  w(x) = 1/x.
+    with with_types(Type.Arith, ElementType.Float):
+        w = Ith(ComputedSignal2D("w", cpp_struct="WelfordWeight2D",
+                                 prelude=WELFORD_W_PRELUDE, setup_code="", make_args=""), 0)
+        a = Var("a")
+        return Recurse(TVKernel([Num(0.0), SSub(Num(1.0), w)]), PointwiseMul(w, a))
+
+
+# Continued fraction via the Wallis–Euler recurrence:
+#   h(x) = a(x)*h(x-1) + b(x)*h(x-2),   f(x) = h(x)/h(x-1)
+# (skipping the final division would leave a rational approximant; see
+# vec-rec/benchmarks/arith/continued_fraction.py).
+#
+# h grows/decays geometrically, so a single long stream overflows within ~100
+# steps. We instead run many *independent* continued fractions of CF_SEGMENT
+# steps each: one CF per harness "row" (row_size = CF_SEGMENT), relying on the
+# recurrence state resetting at each row boundary. A seed input s injects h=1 at
+# each segment's first step (after reset the history is zero, so h(0)=s(0)).
+# Emitted in **double** (float64) so h stays finite across a segment; VecRec
+# dilates this genuinely lag-1 recurrence to vectorize within each segment.
+CF_SEGMENT = 512      # steps per continued fraction (== harness row_size)
+
+
+def _continued_fraction() -> SignalExpr:
+    with with_types(Type.Arith, ElementType.Double):
+        # h(x) = a(x)*h(x-1) + b(x)*h(x-2) + s(x)
+        h = Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("s"))
+        return PointwiseDiv(h, Convolve(TIKernel.z(), h))  # f = h(x)/h(x-1)
+
+
 # ── 2D arithmetic ─────────────────────────────────────────────────────────────
 
 def _box_filter_sat(D: int = 11) -> SignalExpr:
@@ -182,34 +260,41 @@ SPECS: dict[str, Spec] = {
     s.name: s
     for s in [
         Spec("exponential-smoothing", "exponential_smoothing", "1d", "arith",
-             _exponential_smoothing, "f(x)=0.8*f(x-1)+0.2*g(x)"),
+             _exponential_smoothing, display_name="Exponential Smoothing",
+             description="f(x)=0.8*f(x-1)+0.2*g(x)"),
         Spec("double-exp-smoothing", "double_exp_smoothing", "1d", "arith",
-             _double_exp_smoothing,
-             "Holt's double exponential smoothing (level+trend) as a 2x2 mutual recurrence"),
+             _double_exp_smoothing, display_name="Double Exponential Smoothing",
+             description="Holt's double exponential smoothing (level+trend) as a 2x2 mutual recurrence"),
         Spec("box-filter-sat", "box_filter_sat", "2d", "arith",
-             _box_filter_sat, "Box filter (D=11) via 2D difference kernel + summed area table"),
+             _box_filter_sat, display_name="Box Filter (Summed Area Table)",
+             description="Box filter (D=11) via 2D difference kernel + summed area table"),
         Spec("repeated-box-filter", "repeated_box_filter", "2d", "arith",
-             _repeated_box_filter, "3-pass box filter (D=7) approximating a Gaussian"),
+             _repeated_box_filter, display_name="Repeated Box Filter",
+             description="3-pass box filter (D=7) approximating a Gaussian"),
         Spec("first-order-high-pass", "first_order_high_pass", "1d", "arith",
-             _first_order_high_pass, "f(x)=0.8*(f(x-1)+g(x)-g(x-1))"),
+             _first_order_high_pass, display_name="First-Order High Pass Filter",
+             description="f(x)=0.8*(f(x-1)+g(x)-g(x-1))"),
         Spec("recursive-gaussian", "recursive_gaussian", "1d", "arith",
-             _recursive_gaussian, "Causal recursive Gaussian (Young & van Vliet, sigma=2): 3rd-order IIR"),
+             _recursive_gaussian, display_name="Recursive Gaussian Filter",
+             description="Causal recursive Gaussian (Young & van Vliet, sigma=2): 3rd-order IIR"),
         Spec("second-order-high-pass", "second_order_high_pass", "1d", "arith",
-             _second_order_high_pass,
-             "f(x)=1.6*f(x-1)-0.64*f(x-2)+g(x)-2*g(x-1)+g(x-2)"),
+             _second_order_high_pass, display_name="Second-Order High Pass Filter",
+             description="f(x)=1.6*f(x-1)-0.64*f(x-2)+g(x)-2*g(x-1)+g(x-2)"),
         Spec("second-order-low-pass", "second_order_low_pass", "1d", "arith",
-             _second_order_low_pass, "f(x)=1.8*f(x-1)-0.9*f(x-2)+g(x)"),
+             _second_order_low_pass, display_name="Second-Order Low Pass Filter",
+             description="f(x)=1.8*f(x-1)-0.9*f(x-2)+g(x)"),
         Spec("distance-transform", "distance_transform", "2d", "tropmin",
-             _distance_transform, "2D distance transform (TropMin) with knight-move kernel"),
-        # Seam carving: D[y][x] = E[y][x] + min(D[y-1][x-1], D[y-1][x], D[y-1][x+1]).
-        # The x+1 tap reads a *future* column of the previous row (a negative column
-        # lag). VecRec's TIKernel2D indexes previous-row taps by non-negative column
-        # lag (x-j) only, so the centered window cannot be expressed without extending
-        # the kernel representation. Marked unsupported (build_expr=None); the serial
-        # baseline still exists in benchmarks/seam_carving.cpp for reference.
-        Spec("seam-carving", "seam_carving", "2d", "tropmin", None,
-             "Seam-carving DP (centered 3-way min over previous row)",
-             note="UNSUPPORTED: requires a future-column (x+1) tap in the previous row; "
-                  "VecRec's TIKernel2D only supports non-negative column lags."),
+             _distance_transform, display_name="Distance Transform",
+             description="2D distance transform (TropMin) with knight-move kernel"),
+        Spec("nonuniform-recursive-filter", "nonuniform_recursive_filter", "1d", "arith",
+             _nonuniform_recursive_filter, display_name="Non-uniform Recursive Filter",
+             description="Time-varying 2nd-order IIR: f(x)=a(x)*f(x-1)+b(x)*f(x-2)+g(x)"),
+        Spec("welford-mean", "welford_mean", "1d", "arith",
+             _welford_mean, display_name="Welford Mean",
+             description="Welford running mean M(x)=M(x-1)+(a(x)-M(x-1))/x as a 1st-order TV recurrence"),
+        Spec("continued-fraction", "continued_fraction", "1d", "arith",
+             _continued_fraction, display_name="Continued Fraction",
+             description="Wallis-Euler continued fraction h(x)=a(x)h(x-1)+b(x)h(x-2), f=h(x)/h(x-1); "
+                         "batched 512-step segments in float64 (see registry note)"),
     ]
 }

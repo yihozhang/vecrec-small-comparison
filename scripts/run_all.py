@@ -28,7 +28,7 @@ GEN = os.path.join(_ROOT, "generated")
 BUILD = os.path.join(_ROOT, "build")
 RESULTS_CSV = os.path.join(_ROOT, "results.csv")
 
-COLUMNS = ["name", "elements", "serial_us", "baseline_us", "opt_us",
+COLUMNS = ["name", "display_name", "elements", "serial_us", "baseline_us", "opt_us",
            "opt_vs_serial", "opt_vs_baseline", "baseline_vs_serial",
            "max_abs_baseline", "max_abs_opt", "status"]
 
@@ -54,7 +54,7 @@ def run_one(spec, regen: bool, extra_args: list[str]) -> dict | None:
     for line in proc.stdout.splitlines():
         if line.startswith("RESULT,"):
             f = line.split(",")
-            vals = [spec.name, int(f[2])] + [float(x) for x in f[3:11]] + [f[11]]
+            vals = [spec.name, spec.display_name, int(f[2])] + [float(x) for x in f[3:11]] + [f[11]]
             return dict(zip(COLUMNS, vals))
     return None
 

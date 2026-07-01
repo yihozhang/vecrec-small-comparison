@@ -75,7 +75,9 @@ match the generated header. Optional CLI flags on each binary: `--rows --cols --
 
 ## Results
 
-All benchmarks from `benchmark-status.csv` are implemented. Each compares **three**
+Every benchmark from `benchmark-status.csv` that is expressible in VecRec is implemented
+(seam carving is excluded — its centered `min` reads a future column of the previous row, a
+negative column lag that `TIKernel2D` cannot represent). Each compares **three**
 implementations (`clang++ -O3 -ffast-math -march=native`, AVX-512 machine; 1D = a 2^22-sample
 stream, 2D = a 2048×2048 grid — both 4,194,304 elements / 16 MiB per array; representative
 numbers — timings vary with machine load):
@@ -101,26 +103,50 @@ numbers — timings vary with machine load):
 | second-order-high-pass | 1D arith | ~9.9× | ~5.8× | 1.71× | PASS |
 | second-order-low-pass | 1D arith | ~6.3× | ~5.2× | 1.21× | PASS |
 | distance-transform | 2D tropical (min-plus) | ~4.2× | ~5.1× | 0.83× | PASS (exact) |
-| seam-carving | 2D tropical | — | — | — | **UNSUPPORTED** |
+| nonuniform-recursive-filter | 1D arith (time-varying) | ~3.0× | ~3.0× | 0.99× | PASS |
+| welford-mean | 1D arith (time-varying, 1st order) | ~4.0× | ~3.9× | 1.03× | PASS |
+| continued-fraction | 1D arith (time-varying, **float64**) | ~2.0× | ~1.8× | 1.13× | PASS |
 
 With `-ffast-math` (FMA contraction enabled) and the codegen fix that stops the scalar
 baseline from materializing a wide vector load and immediately splitting it into lanes, the
-VecRec **baseline** beats the serial loop on 7 of 9 kernels (`baseline/serial > 1`) — i.e.
-codegen's register tiling/unrolling alone, before any optimization, already wins. The two
+VecRec **baseline** beats (or ties) the serial loop on most kernels (`baseline/serial ≳ 1`) —
+i.e. codegen's register tiling/unrolling alone, before any optimization, already wins. The
 exceptions (`< 1`) are double-exp-smoothing (a coupled 2-variable mutual recurrence) and
 distance-transform (where `-ffast-math` also lets the compiler vectorize the serial min-plus
-loop). Either way `opt/baseline` isolates a further ~5–9× from VecRec's optimization.
+loop); the time-varying kernels sit near `1.0` (their per-sample coefficient loads leave little
+for codegen alone to win). Either way `opt/baseline` isolates a further gain from VecRec's
+optimization — up to ~5–9× on the time-invariant filters, ~1.8–3× on the time-varying ones.
 Correctness compares each VecRec kernel against the serial loop with an absolute-or-relative
 tolerance (both built with `-ffast-math`); the baseline is usually numerically closer to serial
 than the optimized kernel. repeated-box-filter uses a 10% bound — cascaded float32 SAT loses
 precision with grid width (optimized error ~5.4e-2 at 2048², baseline ~6e-5). See `results.csv`
 for exact errors.
 
-**Seam carving is not expressible in VecRec.** Its `min(D[y-1][x-1], D[y-1][x], D[y-1][x+1])`
-reads a future column (`x+1`) of the previous row — a negative column lag. `TIKernel2D` only
-represents non-negative column lags (`x-j`), so the centered window cannot be encoded without
-extending the kernel representation to support look-ahead column taps. The serial baseline is
-provided in `benchmarks/seam_carving.cpp` for reference (`make seam_carving`).
+### Time-varying (non-uniform) recurrences
+
+The last three benchmarks have coefficients that vary per sample, encoded with VecRec's
+`TVKernel` (each tap is an input *signal* rather than a constant):
+
+- **nonuniform-recursive-filter** — `f(x)=a(x)·f(x-1)+b(x)·f(x-2)+g(x)`, a genuine time-varying
+  2nd-order IIR (vec-rec's `second_order_tv`). Coefficients are drawn from `[-0.4, 0.4]` so
+  `|a|+|b|<1` and the filter stays BIBO-stable over the stream.
+- **welford-mean** — Welford's running mean `M(x)=M(x-1)+(a(x)-M(x-1))/x`. Rewritten as a
+  first-order TV recurrence `M(x)=(1-w(x))·M(x-1)+w(x)·a(x)`. The weight `w(x)=1/x` is a pure
+  function of position, so rather than materialize it, it is computed **on the fly** by a
+  `ComputedSignal2D` — a small C++ struct that tracks the stream position and emits a
+  fully-vectorized reciprocal (one `vdivps` per step, no memory traffic for `w`). Both the
+  VecRec kernel and the serial baseline compute `1/x` on the fly, so the comparison is
+  division-bound: VecRec's vectorized reciprocal beats the scalar serial one ~4×.
+- **continued-fraction** — the Wallis–Euler recurrence `h(x)=a(x)·h(x-1)+b(x)·h(x-2)` with
+  `f(x)=h(x)/h(x-1)`. `h` grows/decays geometrically, so a single long stream overflows within
+  ~100 steps; this is the benchmark that motivated **adding `float64` support to vec-rec**. Even
+  in double a long run overflows, so we run many *independent* 512-step continued fractions —
+  **one CF per harness row** (`row_size=512`). The recurrence state resets at each row boundary
+  (VecRec's recurrence zeroes its history in `reset_and_next_row`; only *input readers* stream
+  continuously), so every row is a fresh CF; a seed input injects `h=1` at each row's first step.
+  It is a real lag-1 recurrence, so VecRec dilates it to vectorize within each 512-step segment
+  (~1.8× over the un-dilated baseline). Correctness excludes each row's first step, where
+  `f=h(0)/h(-1)` divides by the zeroed post-reset history.
 
 Regenerate everything with `uv run python scripts/run_all.py` (use `--regen` to redo the
 schedule search).

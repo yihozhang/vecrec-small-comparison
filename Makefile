@@ -19,19 +19,17 @@ BUILD    := build
 # Kernel names == generated header basenames == benchmark source basenames.
 KERNELS := exponential_smoothing double_exp_smoothing box_filter_sat repeated_box_filter \
            first_order_high_pass recursive_gaussian second_order_high_pass \
-           second_order_low_pass distance_transform
+           second_order_low_pass distance_transform \
+           nonuniform_recursive_filter welford_mean continued_fraction
 
-# Serial-only benchmarks (no VecRec kernel; see benchmarks/seam_carving.cpp).
-SERIAL_ONLY := seam_carving
+.PHONY: all run clean $(KERNELS)
 
-.PHONY: all run clean $(KERNELS) $(SERIAL_ONLY)
+all: $(addprefix $(BUILD)/,$(KERNELS))
 
-all: $(addprefix $(BUILD)/,$(KERNELS) $(SERIAL_ONLY))
-
-run: $(KERNELS) $(SERIAL_ONLY)
+run: $(KERNELS)
 
 # `make <kernel>` builds then runs that benchmark.
-$(KERNELS) $(SERIAL_ONLY): %: $(BUILD)/%
+$(KERNELS): %: $(BUILD)/%
 	./$(BUILD)/$*
 
 $(BUILD):
@@ -39,10 +37,6 @@ $(BUILD):
 
 # Benchmarks with a generated kernel header.
 $(addprefix $(BUILD)/,$(KERNELS)): $(BUILD)/%: benchmarks/%.cpp harness/bench.hpp generated/%.h | $(BUILD)
-	$(CXX) $(CXXFLAGS) $< -o $@
-
-# Serial-only benchmarks (no generated header dependency).
-$(addprefix $(BUILD)/,$(SERIAL_ONLY)): $(BUILD)/%: benchmarks/%.cpp harness/bench.hpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) $< -o $@
 
 # Helpful error if a kernel header has not been generated yet.
