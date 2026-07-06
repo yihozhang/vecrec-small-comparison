@@ -19,6 +19,7 @@ from typing import Callable, Optional
 from vecrec.expr import (
     Convolve,
     Convolve2D,
+    Impulse,
     KernelMatrix,
     Num,
     PointwiseDiv,
@@ -29,6 +30,7 @@ from vecrec.expr import (
     TIKernel,
     TIKernel2D,
     TVKernel,
+    TVKernel2D,
     Type,
     Var,
     Var2D,
@@ -48,7 +50,7 @@ class Spec:
     name: str          # benchmark name / slug (hyphenated) — dict key, CLI arg, CSV key
     kernel_name: str   # C++ struct / header name (underscores)
     dim: str           # "1d" or "2d" — informational
-    semiring: str      # "arith" | "tropmin" — informational
+    semiring: str      # "arith" | "tropmin" | "tropmax" — informational
     build_expr: Optional[Callable[[], "SignalExpr | SignalExpr2D"]]
     display_name: str = ""  # human-readable name for display (e.g. "Exponential Smoothing")
     description: str = ""
@@ -239,6 +241,128 @@ def _repeated_box_filter(D: int = 7) -> SignalExpr:
         return b3.at(0)
 
 
+# ── LeetCode recurrences ──────────────────────────────────────────────────────
+# Dynamic-programming recurrences from LeetCode problems, expressed in VecRec's
+# fixed-order linear-recurrence form over the arithmetic and tropical (min/max-plus)
+# semirings. Node-weighted DPs put the per-step reward/cost on the state, so the
+# weight rides on time-varying feedback taps; a seed input carries the base cases
+# and is the semiring zero (0 / ±inf) elsewhere.
+
+def _decode_ways() -> SignalExpr:
+    # LeetCode 91: f(i) = a(i)*f(i-1) + b(i)*f(i-2), where a(i)=1 iff digit i is a valid
+    # single (1..9) and b(i)=1 iff digits (i-1,i) form a valid pair (10..26). Time-varying
+    # 0/1 coefficients. Counts grow ~Fibonacci, so — as in continued_fraction — we run many
+    # independent short strings (one per row, state reset per row); a seed input injects the
+    # f=1 empty-prefix base at each segment's first step. int64 holds the per-segment counts.
+    with with_types(Type.Arith, ElementType.I64):
+        return Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("s"))
+
+
+def _min_cost_climbing_stairs() -> SignalExpr:
+    # LeetCode 746: f(i) = cost[i] + min(f(i-1), f(i-2)).
+    # (min, +): f(i) = min(c[i]+f(i-1), c[i]+f(i-2)), the cost carried by both taps;
+    # seed s gives f(0)=cost[0], f(1)=cost[1] and is +inf (TropMin zero) elsewhere.
+    with with_types(Type.TropMin, ElementType.Double):
+        c = Var("c")
+        return Recurse(TVKernel([Num(Type.TropMin.zero()), c, c]), Var("s"))
+
+
+def _house_robber() -> SignalExpr:
+    # LeetCode 198 (also 213 House Robber II, 740 Delete and Earn — same recurrence):
+    # f(i) = max(f(i-1), f(i-2) + nums[i]).
+    # (max, +): the f(i-1) tap is +0 (skip house i), the f(i-2) tap is +nums[i] (rob it);
+    # seed s gives f(0)=nums[0], f(1)=max(nums[0],nums[1]) and is -inf (TropMax zero) elsewhere.
+    with with_types(Type.TropMax, ElementType.Double):
+        return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("n")]), Var("s"))
+
+
+def _delete_and_earn() -> SignalExpr:
+    # LeetCode 740: bucket the array so total[v] = v * count(v); the problem then becomes
+    # House Robber over the value axis (taking v forbids v-1 and v+1):
+    #   dp(v) = max(dp(v-1), dp(v-2) + total[v]).
+    # Identical recurrence to 198 — the +0 skip tap and +total rob tap in (max, +).
+    with with_types(Type.TropMax, ElementType.Double):
+        return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("t")]), Var("s"))
+
+
+def _max_energy_two_drinks() -> SignalExpr:
+    # LeetCode 3259: two drinks A, B; switching drink loses the next hour. Mutual max-plus DP
+    #   dp_A[i] = A[i] + max(dp_A[i-1], dp_B[i-2])
+    #   dp_B[i] = B[i] + max(dp_B[i-1], dp_A[i-2])
+    # (max, +): each hour's energy rides on the time-varying feedback taps (stay = lag-1 on
+    # the same drink, switch = lag-2 on the other); seeds sa, sb carry the i=0 base and are
+    # -inf (TropMax zero) elsewhere. Encoded as a 2x2 mutual recurrence (precedent:
+    # double_exp_smoothing). Output = dp_A.
+    with with_types(Type.TropMax, ElementType.Double):
+        a, b = Var("a"), Var("b")
+        z = Num(Type.TropMax.zero())
+        A = KernelMatrix(
+            [
+                [TVKernel([z, a, z]), TVKernel([z, z, a])],
+                [TVKernel([z, z, b]), TVKernel([z, b, z])],
+            ]
+        )
+        G = SignalVector([Var("sa"), Var("sb")])
+        return VectorAt(RecurseV(A, G), 0)
+
+
+def _range_sum_2d() -> SignalExpr:
+    # LeetCode 304 (Range Sum Query 2D): the query structure is a summed-area table
+    # over the matrix. f[i][j] = m[i][j] + f[i-1][j] + f[i][j-1] - f[i-1][j-1]; any
+    # rectangle sum is then four table lookups. Same 2x2 SAT recurrence as the inner
+    # pass of box_filter_sat, but driven directly by the matrix instead of a
+    # differenced FIR.
+    with with_types(Type.Arith, ElementType.Float):
+        return Recurse2D(TIKernel2D([[0.0, 1.0], [1.0, -1.0]]), Var2D("m").at(0)).at(0)
+
+
+def _lcs() -> SignalExpr:
+    # LeetCode 1143 (Longest Common Subsequence; also 1035 Uncrossed Lines, and — via a
+    # reversed axis — 516 Longest Palindromic Subseq and 3503). The max-form of LCS is a 2D
+    # TropMax recurrence
+    #   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)),  m = match reward (0/1, or 2).
+    # The match reward m rides on the diagonal (i-1,j-1) tap as a time-varying 2D coefficient
+    # (materialized match matrix fed as Var2D "m"); the up/left taps are +0. Seeded by Impulse(0)
+    # at (0,0). Same 2D-alignment engine as edit_distance / needleman_wunsch.
+    with with_types(Type.TropMax, ElementType.I32):
+        z = Num(Type.TropMax.zero())
+        m = Var2D("m").at(0)
+        kernel = TVKernel2D(
+            [
+                [z, Num(0.0)],        # same row:  dp(i, j-1) + 0
+                [Num(0.0), m],        # row back:  dp(i-1, j) + 0,  dp(i-1, j-1) + m(i,j)
+            ]
+        )
+        return Recurse2D(kernel, Impulse(0)).at(0)
+
+
+def _max_dot_product() -> SignalExpr:
+    # LeetCode 1458 (Max Dot Product of Two Subsequences): dp(i,j) = max(dp(i-1,j), dp(i,j-1),
+    # dp(i-1,j-1) + p(i,j), p(i,j)), where p(i,j)=nums1[i]*nums2[j] (can be negative). LCS-shaped:
+    # +0 up/left taps, the product p on the diagonal tap, and the standalone p (start a new pairing)
+    # as the ⊕ input. p is materialized as Var2D "p" and used in both roles.
+    with with_types(Type.TropMax, ElementType.I32):
+        z = Num(Type.TropMax.zero())
+        p = Var2D("p").at(0)
+        kernel = TVKernel2D([[z, Num(0.0)], [Num(0.0), p]])
+        return Recurse2D(kernel, Var2D("p").at(0)).at(0)
+
+
+def _edit_distance() -> SignalExpr:
+    # LeetCode 72 (Edit Distance; also 583 Delete Two Strings and — via a reversed axis —
+    # 1312 Min Insertion Palindrome). Levenshtein, a 2D TropMin recurrence:
+    #   D(i,j) = min(D(i-1,j)+1, D(i,j-1)+1, D(i-1,j-1) + c(i,j)),  c(i,j) = substitution cost.
+    # Insert/delete are the +1 up/left taps; substitution is the diagonal tap carrying the
+    # materialized per-cell cost c (fed as Var2D). Impulse(0) at (0,0) with the +1 taps yields
+    # the standard D(0,j)=j / D(i,0)=i boundaries.
+    with with_types(Type.TropMin, ElementType.I32):
+        posinf = Num(Type.TropMin.zero())
+        gap = Num(1.0)
+        c = Var2D("c").at(0)
+        kernel = TVKernel2D([[posinf, gap], [gap, c]])
+        return Recurse2D(kernel, Impulse(0)).at(0)
+
+
 # ── 2D tropical (min, +) ──────────────────────────────────────────────────────
 
 _DT_KERNEL = [
@@ -259,6 +383,7 @@ def _distance_transform() -> SignalExpr:
 SPECS: dict[str, Spec] = {
     s.name: s
     for s in [
+        # ── Original repo benchmarks (signal-processing filters + reference DPs) ──
         Spec("exponential-smoothing", "exponential_smoothing", "1d", "arith",
              _exponential_smoothing, display_name="Exponential Smoothing",
              description="f(x)=0.8*f(x-1)+0.2*g(x)"),
@@ -296,5 +421,60 @@ SPECS: dict[str, Spec] = {
              _continued_fraction, display_name="Continued Fraction",
              description="Wallis-Euler continued fraction h(x)=a(x)h(x-1)+b(x)h(x-2), f=h(x)/h(x-1); "
                          "batched 512-step segments in float64 (see registry note)"),
+
+        # ── LeetCode 2D sequence-alignment DPs (TropMax / TropMin) ──
+        Spec("leetcode-1143-lcs", "leetcode_1143_lcs", "2d", "tropmax",
+             _lcs, display_name="Longest Common Subsequence (LeetCode 1143)",
+             description="dp(i,j)=max(dp(i-1,j),dp(i,j-1),dp(i-1,j-1)+match); 2D TropMax alignment"),
+        Spec("leetcode-1035-uncrossed-lines", "leetcode_1035_uncrossed_lines", "2d", "tropmax",
+             _lcs, display_name="Uncrossed Lines (LeetCode 1035)",
+             description="Identical recurrence to LCS on two integer arrays; 2D TropMax alignment"),
+        Spec("leetcode-516-longest-palindromic-subseq", "leetcode_516_longest_palindromic_subseq", "2d", "tropmax",
+             _lcs, display_name="Longest Palindromic Subsequence (LeetCode 516)",
+             description="LPS = LCS-form over one string vs its reverse (diagonal reward 2 on match); 2D TropMax"),
+        Spec("leetcode-3503-longest-palindrome-concat", "leetcode_3503_longest_palindrome_concat", "2d", "tropmax",
+             _lcs, display_name="Longest Palindrome After Concatenation (LeetCode 3503)",
+             description="LPS-form (reward 2 on match) over a combined string; 2D TropMax alignment"),
+        Spec("leetcode-1458-max-dot-product", "leetcode_1458_max_dot_product", "2d", "tropmax",
+             _max_dot_product, display_name="Max Dot Product of Two Subsequences (LeetCode 1458)",
+             description="dp(i,j)=max(dp(i-1,j),dp(i,j-1),dp(i-1,j-1)+p,p), p=nums1[i]*nums2[j]; 2D TropMax"),
+        Spec("leetcode-72-edit-distance", "leetcode_72_edit_distance", "2d", "tropmin",
+             _edit_distance, display_name="Edit Distance (LeetCode 72)",
+             description="Levenshtein D(i,j)=min(D(i-1,j)+1,D(i,j-1)+1,D(i-1,j-1)+cost); 2D TropMin alignment"),
+        Spec("leetcode-583-delete-two-strings", "leetcode_583_delete_two_strings", "2d", "tropmin",
+             _edit_distance, display_name="Delete Operation for Two Strings (LeetCode 583)",
+             description="Edit distance with insert/delete only (substitution forbidden); 2D TropMin alignment"),
+        Spec("leetcode-1312-min-insertion-palindrome", "leetcode_1312_min_insertion_palindrome", "2d", "tropmin",
+             _edit_distance, display_name="Minimum Insertion Steps to Make Palindrome (LeetCode 1312)",
+             description="Min insertions = edit-distance form over one string vs its reverse; 2D TropMin"),
+
+        # ── LeetCode 2D arithmetic (summed-area table) ──
+        Spec("leetcode-304-range-sum-2d", "leetcode_304_range_sum_2d", "2d", "arith",
+             _range_sum_2d, display_name="Range Sum Query 2D (LeetCode 304)",
+             description="2D prefix sum / summed-area table: f[i][j]=m[i][j]+f[i-1][j]+f[i][j-1]-f[i-1][j-1]"),
+
+        # ── LeetCode 1D tropical time-varying DPs ──
+        Spec("leetcode-746-min-cost-climbing-stairs", "leetcode_746_min_cost_climbing_stairs", "1d", "tropmin",
+             _min_cost_climbing_stairs, display_name="Min Cost Climbing Stairs (LeetCode 746)",
+             description="f(i)=cost[i]+min(f(i-1),f(i-2)); TropMin time-varying"),
+        Spec("leetcode-198-house-robber", "leetcode_198_house_robber", "1d", "tropmax",
+             _house_robber, display_name="House Robber (LeetCode 198)",
+             description="f(i)=max(f(i-1), f(i-2)+nums[i]); TropMax time-varying"),
+        Spec("leetcode-213-house-robber-ii", "leetcode_213_house_robber_ii", "1d", "tropmax",
+             _house_robber, display_name="House Robber II (LeetCode 213)",
+             description="Circular House Robber; same max(f(i-1), f(i-2)+nums[i]) recurrence as 198; TropMax TV"),
+        Spec("leetcode-740-delete-and-earn", "leetcode_740_delete_and_earn", "1d", "tropmax",
+             _delete_and_earn, display_name="Delete and Earn (LeetCode 740)",
+             description="dp(v)=max(dp(v-1), dp(v-2)+total[v]); House Robber over the value axis; TropMax TV"),
+
+        # ── LeetCode 1D tropical mutual recurrence ──
+        Spec("leetcode-3259-max-energy-two-drinks", "leetcode_3259_max_energy_two_drinks", "1d", "tropmax",
+             _max_energy_two_drinks, display_name="Maximum Energy Boost From Two Drinks (LeetCode 3259)",
+             description="dp_A[i]=A[i]+max(dp_A[i-1],dp_B[i-2]); dp_B symmetric; TropMax 2x2 mutual"),
+
+        # ── LeetCode 1D arithmetic time-varying counting ──
+        Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",
+             _decode_ways, display_name="Decode Ways (LeetCode 91)",
+             description="f(i)=a(i)f(i-1)+b(i)f(i-2), a,b in {0,1}; arith time-varying, batched 64-step segments"),
     ]
 }
