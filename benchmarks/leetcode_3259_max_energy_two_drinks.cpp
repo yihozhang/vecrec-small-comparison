@@ -1,16 +1,13 @@
-// Maximum Energy Boost From Two Drinks (LeetCode 3259): each hour drink A or B; switching
-// drink loses the next hour. Mutual max-plus DP (output = dp_A, the energy ending on A):
-//   dp_A[i] = A[i] + max(dp_A[i-1], dp_B[i-2])   (stay on A, or switch from B losing hour i-1)
+// Maximum Energy Boost From Two Drinks (LeetCode 3259): each hour drink A or B; switching drinks
+// loses the next hour. 2x2 mutual (max,+) DP (output dp_A):
+//   dp_A[i] = A[i] + max(dp_A[i-1], dp_B[i-2])   (stay on A / switch from B, losing hour i-1)
 //   dp_B[i] = B[i] + max(dp_B[i-1], dp_A[i-2])
-// base cases dp_A[0]=A[0], dp_B[0]=B[0]. Each hour's energy rides on the time-varying taps;
-// seeds sa, sb carry the i=0 base and are a large -inf sentinel (the TropMax zero) elsewhere.
-// One long stream (num_rows defaults to 1). Integer energies keep the winning max-plus sums
-// exact (< 2^53), so correctness is exact — only the sentinel-poisoned losing terms are
-// inexact, and those never win the max.
+// Energy rides on the taps; seeds sa, sb carry the i=0 base, -inf elsewhere. Integer energies
+// keep the max-plus sums exact.
 #include "bench.hpp"
 #include "leetcode_3259_max_energy_two_drinks.h"
 
-static constexpr double SENTINEL = -1e18;  // stands in for the TropMax zero (-inf)
+static constexpr double SENTINEL = -1e18;  // TropMax zero (-inf)
 
 static void build_inputs(double* a, double* b, double* sa, double* sb, size_t N, uint64_t seed) {
   std::mt19937_64 rng(seed);

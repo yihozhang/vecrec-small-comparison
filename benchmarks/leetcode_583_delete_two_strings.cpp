@@ -1,7 +1,6 @@
 // Delete Operation for Two Strings (LeetCode 583): min deletions to make two strings equal —
-// edit distance with insert/delete only (substitution forbidden). Same 2D TropMin recurrence
-// as 72, but the diagonal (substitution) cost is +inf on a mismatch so it is never taken:
-//   D(i,j) = min(D(i-1,j)+1, D(i,j-1)+1, D(i-1,j-1) + c(i,j)),  c(i,j)=0 if match else +inf.
+// edit distance with insert/delete only. Same 2D (min,+) recurrence as 72, but the diagonal
+// (substitution) cost c is +inf on a mismatch so it is never taken (c = 0 if match else +inf).
 #include "bench.hpp"
 #include "leetcode_583_delete_two_strings.h"
 

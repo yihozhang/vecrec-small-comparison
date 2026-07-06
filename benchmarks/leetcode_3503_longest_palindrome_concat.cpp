@@ -1,6 +1,5 @@
-// Longest Palindrome After Substring Concatenation (LeetCode 3503): f(l,r) = 2 + f(l+1,r-1) if
-// combined[l]==combined[r] else max(f(l+1,r), f(l,r-1)) — the longest palindromic subsequence of
-// a combined string. Same reversed-axis mapping as 516: LCS max-form with diagonal reward 2.
+// Longest Palindrome After Substring Concatenation (LeetCode 3503): the longest palindromic
+// subsequence of a combined string. Same reversed-axis LCS max-form as 516 (diagonal reward 2).
 #include "bench.hpp"
 #include "leetcode_3503_longest_palindrome_concat.h"
 

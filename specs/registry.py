@@ -241,58 +241,43 @@ def _repeated_box_filter(D: int = 7) -> SignalExpr:
         return b3.at(0)
 
 
-# ── LeetCode recurrences ──────────────────────────────────────────────────────
-# Dynamic-programming recurrences from LeetCode problems, expressed in VecRec's
-# fixed-order linear-recurrence form over the arithmetic and tropical (min/max-plus)
-# semirings. Node-weighted DPs put the per-step reward/cost on the state, so the
-# weight rides on time-varying feedback taps; a seed input carries the base cases
-# and is the semiring zero (0 / ±inf) elsewhere.
+# ── LeetCode dynamic-programming recurrences ──────────────────────────────────
+# Node-weighted DPs carry the per-step reward/cost on the time-varying feedback taps;
+# a seed input carries the base cases (the semiring zero elsewhere).
 
 def _decode_ways() -> SignalExpr:
-    # LeetCode 91: f(i) = a(i)*f(i-1) + b(i)*f(i-2), where a(i)=1 iff digit i is a valid
-    # single (1..9) and b(i)=1 iff digits (i-1,i) form a valid pair (10..26). Time-varying
-    # 0/1 coefficients. Counts grow ~Fibonacci, so — as in continued_fraction — we run many
-    # independent short strings (one per row, state reset per row); a seed input injects the
-    # f=1 empty-prefix base at each segment's first step. int64 holds the per-segment counts.
+    # LeetCode 91: f(i) = a(i)*f(i-1) + b(i)*f(i-2), a(i),b(i) in {0,1} (valid single / pair).
+    # Counts grow ~Fibonacci, so run short independent strings (one per row, reset per row);
+    # seed s injects the f=1 empty-prefix base at each segment start.
     with with_types(Type.Arith, ElementType.I64):
         return Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("s"))
 
 
 def _min_cost_climbing_stairs() -> SignalExpr:
     # LeetCode 746: f(i) = cost[i] + min(f(i-1), f(i-2)).
-    # (min, +): f(i) = min(c[i]+f(i-1), c[i]+f(i-2)), the cost carried by both taps;
-    # seed s gives f(0)=cost[0], f(1)=cost[1] and is +inf (TropMin zero) elsewhere.
+    # (min, +): cost on both taps; seed s carries f(0), f(1).
     with with_types(Type.TropMin, ElementType.Double):
         c = Var("c")
         return Recurse(TVKernel([Num(Type.TropMin.zero()), c, c]), Var("s"))
 
 
 def _house_robber() -> SignalExpr:
-    # LeetCode 198 (also 213 House Robber II, 740 Delete and Earn — same recurrence):
-    # f(i) = max(f(i-1), f(i-2) + nums[i]).
-    # (max, +): the f(i-1) tap is +0 (skip house i), the f(i-2) tap is +nums[i] (rob it);
-    # seed s gives f(0)=nums[0], f(1)=max(nums[0],nums[1]) and is -inf (TropMax zero) elsewhere.
+    # LeetCode 198: f(i) = max(f(i-1), f(i-2) + nums[i]).
+    # (max, +): +0 tap on f(i-1), +nums tap on f(i-2); seed s carries the base cases.
     with with_types(Type.TropMax, ElementType.Double):
         return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("n")]), Var("s"))
 
 
 def _delete_and_earn() -> SignalExpr:
-    # LeetCode 740: bucket the array so total[v] = v * count(v); the problem then becomes
-    # House Robber over the value axis (taking v forbids v-1 and v+1):
-    #   dp(v) = max(dp(v-1), dp(v-2) + total[v]).
-    # Identical recurrence to 198 — the +0 skip tap and +total rob tap in (max, +).
+    # LeetCode 740: dp(v) = max(dp(v-1), dp(v-2) + total[v]), total[v] = v * count(v).
+    # House Robber over the value axis (same recurrence as 198).
     with with_types(Type.TropMax, ElementType.Double):
         return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("t")]), Var("s"))
 
 
 def _max_energy_two_drinks() -> SignalExpr:
-    # LeetCode 3259: two drinks A, B; switching drink loses the next hour. Mutual max-plus DP
-    #   dp_A[i] = A[i] + max(dp_A[i-1], dp_B[i-2])
-    #   dp_B[i] = B[i] + max(dp_B[i-1], dp_A[i-2])
-    # (max, +): each hour's energy rides on the time-varying feedback taps (stay = lag-1 on
-    # the same drink, switch = lag-2 on the other); seeds sa, sb carry the i=0 base and are
-    # -inf (TropMax zero) elsewhere. Encoded as a 2x2 mutual recurrence (precedent:
-    # double_exp_smoothing). Output = dp_A.
+    # LeetCode 3259: dp_A[i] = A[i] + max(dp_A[i-1], dp_B[i-2]); dp_B symmetric.
+    # (max, +) 2x2 mutual: reward on the taps (stay = lag-1, switch = lag-2 cross). Output dp_A.
     with with_types(Type.TropMax, ElementType.Double):
         a, b = Var("a"), Var("b")
         z = Num(Type.TropMax.zero())
@@ -307,23 +292,15 @@ def _max_energy_two_drinks() -> SignalExpr:
 
 
 def _range_sum_2d() -> SignalExpr:
-    # LeetCode 304 (Range Sum Query 2D): the query structure is a summed-area table
-    # over the matrix. f[i][j] = m[i][j] + f[i-1][j] + f[i][j-1] - f[i-1][j-1]; any
-    # rectangle sum is then four table lookups. Same 2x2 SAT recurrence as the inner
-    # pass of box_filter_sat, but driven directly by the matrix instead of a
-    # differenced FIR.
+    # LeetCode 304: 2D prefix sum (summed-area table)
+    # f[i][j] = m[i][j] + f[i-1][j] + f[i][j-1] - f[i-1][j-1].
     with with_types(Type.Arith, ElementType.Float):
         return Recurse2D(TIKernel2D([[0.0, 1.0], [1.0, -1.0]]), Var2D("m").at(0)).at(0)
 
 
 def _lcs() -> SignalExpr:
-    # LeetCode 1143 (Longest Common Subsequence; also 1035 Uncrossed Lines, and — via a
-    # reversed axis — 516 Longest Palindromic Subseq and 3503). The max-form of LCS is a 2D
-    # TropMax recurrence
-    #   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)),  m = match reward (0/1, or 2).
-    # The match reward m rides on the diagonal (i-1,j-1) tap as a time-varying 2D coefficient
-    # (materialized match matrix fed as Var2D "m"); the up/left taps are +0. Seeded by Impulse(0)
-    # at (0,0). Same 2D-alignment engine as edit_distance / needleman_wunsch.
+    # LeetCode 1143 (also 1035; 516/3503 via a reversed axis). LCS max-form, a 2D (max,+) recurrence
+    # dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)); match reward m on the diagonal tap.
     with with_types(Type.TropMax, ElementType.I32):
         z = Num(Type.TropMax.zero())
         m = Var2D("m").at(0)
@@ -337,10 +314,8 @@ def _lcs() -> SignalExpr:
 
 
 def _max_dot_product() -> SignalExpr:
-    # LeetCode 1458 (Max Dot Product of Two Subsequences): dp(i,j) = max(dp(i-1,j), dp(i,j-1),
-    # dp(i-1,j-1) + p(i,j), p(i,j)), where p(i,j)=nums1[i]*nums2[j] (can be negative). LCS-shaped:
-    # +0 up/left taps, the product p on the diagonal tap, and the standalone p (start a new pairing)
-    # as the ⊕ input. p is materialized as Var2D "p" and used in both roles.
+    # LeetCode 1458: dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + p, p), p = nums1[i]*nums2[j].
+    # LCS-shaped; the product p is both the diagonal tap and the standalone ⊕ input.
     with with_types(Type.TropMax, ElementType.I32):
         z = Num(Type.TropMax.zero())
         p = Var2D("p").at(0)
@@ -349,12 +324,8 @@ def _max_dot_product() -> SignalExpr:
 
 
 def _edit_distance() -> SignalExpr:
-    # LeetCode 72 (Edit Distance; also 583 Delete Two Strings and — via a reversed axis —
-    # 1312 Min Insertion Palindrome). Levenshtein, a 2D TropMin recurrence:
-    #   D(i,j) = min(D(i-1,j)+1, D(i,j-1)+1, D(i-1,j-1) + c(i,j)),  c(i,j) = substitution cost.
-    # Insert/delete are the +1 up/left taps; substitution is the diagonal tap carrying the
-    # materialized per-cell cost c (fed as Var2D). Impulse(0) at (0,0) with the +1 taps yields
-    # the standard D(0,j)=j / D(i,0)=i boundaries.
+    # LeetCode 72 (also 583; 1312 via a reversed axis). Levenshtein, a 2D (min,+) recurrence
+    # D(i,j) = min(D(i-1,j)+1, D(i,j-1)+1, D(i-1,j-1) + c(i,j)); c = per-cell substitution cost.
     with with_types(Type.TropMin, ElementType.I32):
         posinf = Num(Type.TropMin.zero())
         gap = Num(1.0)

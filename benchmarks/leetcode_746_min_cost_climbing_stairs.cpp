@@ -1,21 +1,12 @@
-// Min Cost Climbing Stairs (LeetCode 746): f(i) = cost[i] + min(f(i-1), f(i-2)),
-// with base cases f(0)=cost[0], f(1)=cost[1]. In the (min, +) tropical semiring the
-// per-step cost rides on both time-varying feedback taps, and a seed stream s carries
-// the two base cases; elsewhere s is a large "no-op" value (the TropMin zero, +inf)
-// that never wins the min. One long staircase (num_rows defaults to 1).
-//
-// We use a large FINITE sentinel rather than a literal infinity in the inputs and the
-// serial baseline because the build uses -ffast-math (which does not model inf/nan);
-// the costs keep every real f(i) far below the sentinel, so min() behaves identically.
+// Min Cost Climbing Stairs (LeetCode 746): f(i) = cost[i] + min(f(i-1), f(i-2)).
+// (min, +): the cost rides on both feedback taps; seed s carries f(0)=cost[0], f(1)=cost[1]
+// and is a large finite stand-in for the TropMin zero (+inf) elsewhere.
 #include "bench.hpp"
 #include "leetcode_746_min_cost_climbing_stairs.h"
 
-static constexpr double SENTINEL = 1e18;  // stands in for the TropMin zero (+inf) in s
+static constexpr double SENTINEL = 1e18;  // TropMin zero (+inf)
 
-// c[i] = per-step cost (>= 0); s seeds the two base cases and is the +inf sentinel
-// elsewhere. Costs are kept non-negative so f(1) = min(c1+c0, c1) = c1. Integer costs
-// (stored as double) keep every partial path sum exact (< 2^53) regardless of how the
-// dilation reassociates the min-plus products, so correctness is an exact match.
+// c[i] = cost (>= 0, integer so min-plus path sums stay exact); s seeds f(0), f(1).
 static void build_inputs(double* c, double* s, size_t N, uint64_t seed) {
   std::mt19937_64 rng(seed);
   std::uniform_int_distribution<int> cost(0, 100);

@@ -1,12 +1,10 @@
-// Delete and Earn (LeetCode 740): after bucketing, total[v] = v * count(v), and taking value
-// v deletes v-1 and v+1 — so over the value axis it is exactly House Robber:
-//   dp(v) = max(dp(v-1), dp(v-2) + total[v]),  base cases dp(0)=total[0], dp(1)=max(total[0],total[1]).
-// In (max, +): +0 skip tap on dp(v-1), +total tap on dp(v-2); seed s carries the two base cases
-// and is a large -inf sentinel elsewhere. One long value axis. Integer totals keep sums exact.
+// Delete and Earn (LeetCode 740): over the value axis (total[v] = v * count(v), taking v deletes
+// v-1 and v+1) this is House Robber: dp(v) = max(dp(v-1), dp(v-2) + total[v]).
+// (max, +): +0 skip tap, +total rob tap; seed s carries dp(0), dp(1), -inf elsewhere.
 #include "bench.hpp"
 #include "leetcode_740_delete_and_earn.h"
 
-static constexpr double SENTINEL = -1e18;
+static constexpr double SENTINEL = -1e18;  // TropMax zero (-inf)
 
 // Inputs in alphabetical order: s (seed), t (total).
 static void build_inputs(double* s, double* t, size_t N, uint64_t seed) {

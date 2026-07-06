@@ -1,16 +1,11 @@
-// House Robber (LeetCode 198): f(i) = max(f(i-1), f(i-2) + nums[i]), i.e. the max
-// sum of a subset of a row of houses with no two adjacent. Base cases f(0)=nums[0],
-// f(1)=max(nums[0],nums[1]). In the (max, +) tropical semiring the "skip" edge f(i-1)
-// has weight +0 and the "rob" edge f(i-2) has the time-varying weight +nums[i]; a seed
-// stream s carries the two base cases and is a large -inf sentinel (the TropMax zero)
-// elsewhere. One long row of houses (num_rows defaults to 1).
-//
-// A large FINITE sentinel replaces literal -inf because the build uses -ffast-math;
-// integer rewards keep every partial path sum exact (< 2^53), so correctness is exact.
+// House Robber (LeetCode 198): f(i) = max(f(i-1), f(i-2) + nums[i]).
+// (max, +): +0 tap on f(i-1) (skip house i), +nums tap on f(i-2) (rob it); seed s carries
+// f(0)=nums[0], f(1)=max(nums[0],nums[1]) and is a large -inf stand-in elsewhere. Integer
+// rewards keep the max-plus sums exact.
 #include "bench.hpp"
 #include "leetcode_198_house_robber.h"
 
-static constexpr double SENTINEL = -1e18;  // stands in for the TropMax zero (-inf) in s
+static constexpr double SENTINEL = -1e18;  // TropMax zero (-inf)
 
 static void build_inputs(double* n, double* s, size_t N, uint64_t seed) {
   std::mt19937_64 rng(seed);

@@ -1,9 +1,7 @@
 // Longest Palindromic Subsequence (LeetCode 516): f(l,r) = 2 + f(l+1,r-1) if s[l]==s[r] else
-// max(f(l+1,r), f(l,r-1)). Reversing the l axis (i = L-1-l) turns the (l+1,r-1) dependency into
-// the standard (i-1,r-1) diagonal, giving exactly the LCS max-form 2D TropMax recurrence
-//   dp(i,r) = max(dp(i-1,r), dp(i,r-1), dp(i-1,r-1) + m(i,r)),  m = 2 on match else 0,
-// over one string vs itself. Match reward rides on the diagonal tap (materialized m). Deep
-// up/left/diag dependency (unlike 718) so the optimizer wins.
+// max(f(l+1,r), f(l,r-1)). Reversing the l axis (i = L-1-l) turns (l+1,r-1) into the standard
+// (i-1,r-1) diagonal, giving the LCS max-form over one string vs itself with diagonal reward
+//   m = 2 on match else 0.
 #include "bench.hpp"
 #include "leetcode_516_longest_palindromic_subseq.h"
 

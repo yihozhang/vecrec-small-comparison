@@ -1,8 +1,7 @@
 // Max Dot Product of Two Subsequences (LeetCode 1458):
-//   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + p(i,j), p(i,j)),  p(i,j)=nums1[i]*nums2[j].
-// LCS-shaped 2D TropMax recurrence: +0 up/left taps, the product p on the diagonal tap, and the
-// standalone p (start a new pairing at (i,j)) as the ⊕ input. p (materialized, may be negative)
-// is used in both roles.
+//   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + p, p),  p = nums1[i]*nums2[j].
+// LCS-shaped 2D (max,+): +0 up/left taps, and the product p (materialized, may be negative) as
+// both the diagonal tap and the standalone ⊕ input (start a new pairing).
 #include "bench.hpp"
 #include "leetcode_1458_max_dot_product.h"
 

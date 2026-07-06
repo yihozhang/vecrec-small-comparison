@@ -1,9 +1,7 @@
 // Minimum Insertion Steps to Make a String Palindrome (LeetCode 1312): f(l,r) = f(l+1,r-1) if
-// s[l]==s[r] else 1 + min(f(l+1,r), f(l,r-1)). Reversing the l axis (i = L-1-l) makes it the
-// standard edit-distance 2D TropMin recurrence over one string vs itself:
-//   D(i,r) = min(D(i-1,r)+1, D(i,r-1)+1, D(i-1,r-1) + c(i,r)),  c = 0 on match else +inf.
-// Insert = the +1 up/left taps; the diagonal is free on a match and forbidden (+inf) on a
-// mismatch. Deep up/left/diag dependency so the optimizer wins.
+// s[l]==s[r] else 1 + min(f(l+1,r), f(l,r-1)). Reversing the l axis (i = L-1-l) gives the
+// edit-distance 2D (min,+) recurrence over one string vs itself:
+//   D(i,r) = min(D(i-1,r)+1, D(i,r-1)+1, D(i-1,r-1) + c),  c = 0 on match else +inf.
 #include "bench.hpp"
 #include "leetcode_1312_min_insertion_palindrome.h"
 

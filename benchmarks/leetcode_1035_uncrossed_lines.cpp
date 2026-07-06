@@ -1,9 +1,5 @@
-// Uncrossed Lines (LeetCode 1035): drawing non-crossing connecting lines between equal values
-// of two arrays is exactly the Longest Common Subsequence problem. Same max-form 2D TropMax
-// recurrence as 1143:
-//   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)),  m(i,j)=1 if nums1[i]==nums2[j] else 0.
-// Match reward rides on the diagonal tap (materialized matrix m); row0/col0 are the empty
-// boundary seeded by Impulse(0).
+// Uncrossed Lines (LeetCode 1035): non-crossing matches between two arrays = Longest Common
+// Subsequence — the same 2D (max,+) recurrence as 1143, with m = 1 if nums1[i]==nums2[j] else 0.
 #include "bench.hpp"
 #include "leetcode_1035_uncrossed_lines.h"
 

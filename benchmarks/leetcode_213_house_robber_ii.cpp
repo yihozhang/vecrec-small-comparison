@@ -1,12 +1,11 @@
-// House Robber II (LeetCode 213): houses in a circle — same per-house recurrence as 198,
-//   f(i) = max(f(i-1), f(i-2) + nums[i]),
-// solved by running the linear DP twice over two ranges (excluding the first or the last house);
-// the recurrence itself is identical to 198. Max-plus: +0 skip tap on f(i-1), +nums rob tap on
-// f(i-2); seed s carries the two base cases and is -inf elsewhere. One long row of houses.
+// House Robber II (LeetCode 213): circular houses, same per-house recurrence as 198
+//   f(i) = max(f(i-1), f(i-2) + nums[i])
+// (the circular case runs this linear DP twice over two ranges). (max, +): +0 skip tap,
+// +nums rob tap; seed s carries the base cases, -inf elsewhere.
 #include "bench.hpp"
 #include "leetcode_213_house_robber_ii.h"
 
-static constexpr double SENTINEL = -1e18;
+static constexpr double SENTINEL = -1e18;  // TropMax zero (-inf)
 
 static void build_inputs(double* n, double* s, size_t N, uint64_t seed) {
   std::mt19937_64 rng(seed);

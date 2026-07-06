@@ -1,12 +1,8 @@
-// Decode Ways (LeetCode 91): number of ways to decode a digit string, where
-//   f(i) = a(i)*f(i-1) + b(i)*f(i-2)
-// a(i)=1 iff digit i is a valid single (1..9), b(i)=1 iff digits (i-1,i) form a valid
-// pair (10..26). The counts grow ~Fibonacci and overflow a single long stream, so we run
-// many independent length-G strings (one per row): the recurrence resets at each row
-// boundary and a seed s injects the f=1 empty-prefix base at each segment's first step.
-// int64 holds the counts within a 64-step segment.
-//
-// G below MUST match specs.registry.DECODE_SEGMENT.
+// Decode Ways (LeetCode 91): number of ways to decode a digit string,
+//   f(i) = a(i)*f(i-1) + b(i)*f(i-2),  a(i),b(i) in {0,1} (valid single / valid pair).
+// Counts grow ~Fibonacci and overflow a single stream, so we run many independent length-G
+// strings (one per row, state reset per row); seed s injects the f=1 empty-prefix base at each
+// segment start. int64 holds a 64-step segment.
 #include "bench.hpp"
 #include "leetcode_91_decode_ways.h"
 

@@ -1,8 +1,7 @@
-// Edit Distance (LeetCode 72), Levenshtein, as a 2D TropMin recurrence:
-//   D(i,j) = min(D(i-1,j)+1, D(i,j-1)+1, D(i-1,j-1) + c(i,j)),  c(i,j)=0 if s1[i]==s2[j] else 1.
-// Insert/delete are the +1 up/left taps; substitution is the diagonal tap carrying the
-// materialized per-cell cost matrix c (fed as the input). Row0/col0 (D(0,j)=j, D(i,0)=i) arise
-// from Impulse(0) at (0,0) plus the +1 taps; out-of-grid predecessors are the TropMin zero (+inf).
+// Edit Distance (LeetCode 72), Levenshtein, as a 2D (min,+) recurrence:
+//   D(i,j) = min(D(i-1,j)+1, D(i,j-1)+1, D(i-1,j-1) + c(i,j)),  c = 0 if s1[i]==s2[j] else 1.
+// Insert/delete are the +1 up/left taps; substitution is the diagonal tap (materialized cost c).
+// Impulse(0) plus the +1 taps give the D(0,j)=j / D(i,0)=i boundaries.
 #include "bench.hpp"
 #include "leetcode_72_edit_distance.h"
 

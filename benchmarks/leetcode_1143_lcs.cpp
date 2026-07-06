@@ -1,9 +1,7 @@
-// Longest Common Subsequence (LeetCode 1143), max-form as a 2D TropMax recurrence:
-//   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)),  m(i,j) = 1 if s1[i]==s2[j] else 0.
-// Row 0 / column 0 are the empty-prefix boundary (dp = 0), seeded by Impulse(0) at (0,0); the
-// out-of-grid predecessors are the TropMax zero (-inf) and never win the max. The match reward
-// m rides on the diagonal tap as a materialized 2D coefficient (fed as the input matrix m).
-// This is the 2D sequence-alignment engine (cf. edit_distance / needleman_wunsch in vec-rec).
+// Longest Common Subsequence (LeetCode 1143), max-form as a 2D (max,+) recurrence:
+//   dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)),  m = 1 if s1[i]==s2[j] else 0.
+// The match reward m rides on the diagonal tap (materialized matrix m); row 0 / column 0 are
+// the empty-prefix boundary (dp = 0), seeded by Impulse(0).
 #include "bench.hpp"
 #include "leetcode_1143_lcs.h"
 
