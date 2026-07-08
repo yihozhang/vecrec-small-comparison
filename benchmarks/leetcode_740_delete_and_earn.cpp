@@ -4,22 +4,22 @@
 #include "bench.hpp"
 #include "leetcode_740_delete_and_earn.h"
 
-static constexpr double SENTINEL = -1e18;  // TropMax zero (-inf)
+static constexpr int32_t SENTINEL = INT32_MIN / 8;  // TropMax zero (-inf)
 
 // Inputs in alphabetical order: s (seed), t (total).
-static void build_inputs(double* s, double* t, size_t N, uint64_t seed) {
+static void build_inputs(int32_t* s, int32_t* t, size_t N, uint64_t seed) {
   std::mt19937_64 rng(seed);
   std::uniform_int_distribution<int> total(0, 100);
   for (size_t i = 0; i < N; ++i) {
-    t[i] = (double)total(rng);
+    t[i] = (int32_t)total(rng);
     s[i] = (i < 2) ? t[i] : SENTINEL;   // dp(0)=total[0], dp(1)=total[1] seed the base cases
   }
 }
 
-static void serial(const double* s, const double* t, double* out, int num_rows, int row_size) {
+static void serial(const int32_t* s, const int32_t* t, int32_t* out, int num_rows, int row_size) {
   const size_t N = (size_t)num_rows * (size_t)row_size;
   for (size_t i = 0; i < N; ++i) {
-    double f;
+    int32_t f;
     if (i == 0) f = s[0];                                  // total[0]
     else if (i == 1) f = std::max(out[0], s[1]);           // max(total[0], total[1])
     else f = std::max(out[i - 1], out[i - 2] + t[i]);
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
   using Kb = leetcode_740_delete_and_earn_baseline;
   bench::Config cfg = bench::parse(argc, argv, /*rows=*/1, /*cols=*/1 << 22);
   bench::Dims<K> d = bench::physical_dims2<K, Kb>(cfg.num_rows, cfg.row_size);
-  std::vector<double> s(d.n), t(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int32_t> s(d.n), t(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
   build_inputs(s.data(), t.data(), d.n, cfg.seed);
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(s.data(), t.data(), d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);

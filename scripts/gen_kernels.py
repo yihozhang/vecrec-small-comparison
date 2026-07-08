@@ -24,6 +24,7 @@ sys.path.insert(0, _ROOT)
 
 from specs.registry import SPECS  # noqa: E402
 from vecrec.codegen import find_best_schedule_and_emit_header  # noqa: E402
+from vecrec.expr import pp  # noqa: E402
 
 GENERATED_DIR = os.path.join(_ROOT, "generated")
 
@@ -53,6 +54,9 @@ def gen_one(name: str) -> dict | None:
         flush=True,
     )
     meta = dict(result)
+    # Replace the (non-serializable) schedule ASTs with their pretty-printed forms.
+    meta["best_schedule"] = pp(meta.pop("best_expr"))
+    meta["baseline_schedule"] = pp(meta.pop("baseline_expr"))
     meta["name"] = spec.name
     meta["dim"] = spec.dim
     meta["semiring"] = spec.semiring

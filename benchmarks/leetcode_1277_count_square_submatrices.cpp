@@ -6,27 +6,27 @@
 #include "bench.hpp"
 #include "leetcode_1277_count_square_submatrices.h"
 
-static constexpr float BIG = 1e9f;  // stand-in for the TropMin zero (+inf) on interior cells
+static constexpr int32_t BIG = INT32_MAX / 8;  // stand-in for the TropMin zero (+inf) on interior cells
 
-static void build_inputs(float* g, int rows, int cols, uint64_t seed) {
+static void build_inputs(int32_t* g, int rows, int cols, uint64_t seed) {
   std::mt19937_64 rng(seed);
   std::uniform_int_distribution<int> p(0, 99);
   for (int i = 0; i < rows; ++i)
     for (int j = 0; j < cols; ++j) {
       size_t idx = (size_t)i * cols + j;
       bool one = p(rng) < 70;
-      g[idx] = !one ? 0.0f : ((i == 0 || j == 0) ? 1.0f : BIG);
+      g[idx] = !one ? 0 : ((i == 0 || j == 0) ? 1 : BIG);
     }
 }
 
-static void serial(const float* g, float* out, int rows, int cols) {
+static void serial(const int32_t* g, int32_t* out, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       size_t idx = (size_t)i * cols + j;
-      float best = g[idx];
-      if (i >= 1) best = std::min(best, out[(size_t)(i - 1) * cols + j] + 1.0f);
-      if (j >= 1) best = std::min(best, out[idx - 1] + 1.0f);
-      if (i >= 1 && j >= 1) best = std::min(best, out[(size_t)(i - 1) * cols + (j - 1)] + 1.0f);
+      int32_t best = g[idx];
+      if (i >= 1) best = std::min(best, out[(size_t)(i - 1) * cols + j] + 1);
+      if (j >= 1) best = std::min(best, out[idx - 1] + 1);
+      if (i >= 1 && j >= 1) best = std::min(best, out[(size_t)(i - 1) * cols + (j - 1)] + 1);
       out[idx] = best;
     }
   }
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   using Kb = leetcode_1277_count_square_submatrices_baseline;
   bench::Config cfg = bench::parse(argc, argv, /*rows=*/2048, /*cols=*/2048);
   bench::Dims<K> d = bench::physical_dims2<K, Kb>(cfg.num_rows, cfg.row_size);
-  std::vector<float> g(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int32_t> g(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
   build_inputs(g.data(), d.rows, d.cols, cfg.seed);
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(g.data(), d.cols, d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);
