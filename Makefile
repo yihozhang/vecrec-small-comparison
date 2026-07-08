@@ -20,7 +20,7 @@ BUILD    := build
 KERNELS := exponential_smoothing double_exp_smoothing box_filter_sat repeated_box_filter \
            first_order_high_pass recursive_gaussian second_order_high_pass \
            second_order_low_pass distance_transform \
-           nonuniform_recursive_filter welford_mean continued_fraction \
+           nonuniform_recursive_filter welford_variance continued_fraction \
            leetcode_1143_lcs leetcode_1035_uncrossed_lines leetcode_1092_shortest_common_supersequence \
            leetcode_1216_valid_palindrome_iii leetcode_516_longest_palindromic_subseq \
            leetcode_3503_longest_palindrome_concat leetcode_1458_max_dot_product leetcode_72_edit_distance \

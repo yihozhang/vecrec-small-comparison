@@ -104,7 +104,7 @@ numbers — timings vary with machine load):
 | second-order-low-pass | 1D arith | ~6.3× | ~5.2× | 1.21× | PASS |
 | distance-transform | 2D tropical (min-plus) | ~4.2× | ~5.1× | 0.83× | PASS (exact) |
 | nonuniform-recursive-filter | 1D arith (time-varying) | ~3.0× | ~3.0× | 0.99× | PASS |
-| welford-mean | 1D arith (time-varying, 1st order) | ~4.0× | ~3.9× | 1.03× | PASS |
+| welford-variance | 1D arith (2 coupled recurrences, TV) | ~1.5× | ~1.2× | 1.31× | PASS |
 | continued-fraction | 1D arith (time-varying, **float64**) | ~2.0× | ~1.8× | 1.13× | PASS |
 
 With `-ffast-math` (FMA contraction enabled) and the codegen fix that stops the scalar
@@ -130,13 +130,15 @@ The last three benchmarks have coefficients that vary per sample, encoded with V
 - **nonuniform-recursive-filter** — `f(x)=a(x)·f(x-1)+b(x)·f(x-2)+g(x)`, a genuine time-varying
   2nd-order IIR (vec-rec's `second_order_tv`). Coefficients are drawn from `[-0.4, 0.4]` so
   `|a|+|b|<1` and the filter stays BIBO-stable over the stream.
-- **welford-mean** — Welford's running mean `M(x)=M(x-1)+(a(x)-M(x-1))/x`. Rewritten as a
-  first-order TV recurrence `M(x)=(1-w(x))·M(x-1)+w(x)·a(x)`. The weight `w(x)=1/x` is a pure
-  function of position, so rather than materialize it, it is computed **on the fly** by a
-  `ComputedSignal2D` — a small C++ struct that tracks the stream position and emits a
-  fully-vectorized reciprocal (one `vdivps` per step, no memory traffic for `w`). Both the
-  VecRec kernel and the serial baseline compute `1/x` on the fly, so the comparison is
-  division-bound: VecRec's vectorized reciprocal beats the scalar serial one ~4×.
+- **welford-variance** — Welford's single-pass running (population) variance `var(x)=M2(x)/x`,
+  where the running mean `M(x)=(1-w(x))·M(x-1)+w(x)·a(x)` and the sum of squared deviations
+  `M2(x)=M2(x-1)+(1-w(x))·(a(x)-M(x-1))²` (the usual `delta·delta2` update rewritten via
+  `delta2=(1-w(x))·delta`, so it needs only the *previous* mean). This is **two coupled
+  recurrences** — the first-order TV mean plus a plain prefix sum for `M2` — joined by pointwise
+  ops (a one-step delay on `M`, subtract, square, scale). The weight `w(x)=1/x` (and `(x-1)/x =
+  1-w`) is a pure function of position, so rather than materialize it, it is computed **on the
+  fly** by a `ComputedSignal2D` — a small C++ struct that tracks the stream position and emits a
+  fully-vectorized reciprocal (one `vdivps` per step, no memory traffic for `w`).
 - **continued-fraction** — the Wallis–Euler recurrence `h(x)=a(x)·h(x-1)+b(x)·h(x-2)` with
   `f(x)=h(x)/h(x-1)`. `h` grows/decays geometrically, so a single long stream overflows within
   ~100 steps; this is the benchmark that motivated **adding `float64` support to vec-rec**. Even

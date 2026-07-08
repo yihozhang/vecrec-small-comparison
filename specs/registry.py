@@ -197,14 +197,18 @@ struct WelfordWeight2D {
 """
 
 
-def _welford_mean() -> SignalExpr:
-    # Welford running mean: M(x) = M(x-1) + (a(x) - M(x-1)) / x
-    #                            = (1 - w(x))*M(x-1) + w(x)*a(x),  w(x) = 1/x.
+def _welford_variance() -> SignalExpr:
     with with_types(Type.Arith, ElementType.Float):
         w = Ith(ComputedSignal2D("w", cpp_struct="WelfordWeight2D",
                                  prelude=WELFORD_W_PRELUDE, setup_code="", make_args=""), 0)
         a = Var("a")
-        return Recurse(TVKernel([Num(0.0), SSub(Num(1.0), w)]), PointwiseMul(w, a))
+        wc = SSub(Num(1.0), w)                              # (x-1)/x
+        M = Recurse(TVKernel([Num(0.0), wc]), PointwiseMul(w, a))
+        delta1 = SSub(a, Convolve(TIKernel.z(), M))          # a(x) - M(x-1)  (M(0)=0)
+        delta2 = SSub(M, a) # a(x) - M(x)
+        incr = PointwiseMul(delta1, delta2)  # (a(x) - M(x)) * (a(x) - M(x-1))
+        M2 = Recurse(TIKernel([0.0, 1.0]), incr)             # M2(x) = M2(x-1) + incr(x)
+        return PointwiseMul(w, M2)                           # var(x) = M2(x)/x
 
 
 # Continued fraction via the Wallis–Euler recurrence:
@@ -437,9 +441,10 @@ SPECS: dict[str, Spec] = {
         Spec("nonuniform-recursive-filter", "nonuniform_recursive_filter", "1d", "arith",
              _nonuniform_recursive_filter, display_name="Non-uniform Recursive Filter",
              description="Time-varying 2nd-order IIR: f(x)=a(x)*f(x-1)+b(x)*f(x-2)+g(x)"),
-        Spec("welford-mean", "welford_mean", "1d", "arith",
-             _welford_mean, display_name="Welford Mean",
-             description="Welford running mean M(x)=M(x-1)+(a(x)-M(x-1))/x as a 1st-order TV recurrence"),
+        Spec("welford-variance", "welford_variance", "1d", "arith",
+             _welford_variance, display_name="Welford Variance",
+             description="Welford running population variance var(x)=M2(x)/x, M2 a prefix sum of "
+                         "((x-1)/x)*(a(x)-M(x-1))^2 coupled to the running mean M"),
         Spec("continued-fraction", "continued_fraction", "1d", "arith",
              _continued_fraction, display_name="Continued Fraction",
              description="Wallis-Euler continued fraction h(x)=a(x)h(x-1)+b(x)h(x-2), f=h(x)/h(x-1); "
