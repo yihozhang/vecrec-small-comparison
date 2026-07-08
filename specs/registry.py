@@ -40,9 +40,28 @@ from vecrec.expr import (
 from vecrec.expr.base import SignalExpr, SignalExpr2D
 from vecrec.expr.signal import ComputedSignal2D
 from vecrec.expr.signal_ops import Ith, PointwiseMul, SSub
+from vecrec.semiring import CustomSemiring
 from vecrec.util import ElementType
 
 INF = float("inf")
+
+# Boolean semiring: OR = plus, AND = times (on {0,1}: OR=max, AND=min). Idempotent (OR), so the
+# tropical-style dilation applies. Distinct from the built-in semirings (times is min, not +).
+BoolOrAnd = CustomSemiring(
+    name="BoolOrAnd",
+    zero=0.0,   # False (identity for OR)
+    one=1.0,    # True  (identity for AND)
+    plus=lambda a, b: max(a, b),   # OR
+    times=lambda a, b: min(a, b),  # AND
+    is_zero_fn=lambda v: abs(v) < 1e-6,
+    is_one_fn=lambda v: abs(v - 1.0) < 1e-6,
+    cpp_zero_init="(elt_type)0",
+    cpp_mul_op="[](auto a, auto b) { return __builtin_elementwise_min(a, b); }",
+    cpp_add_op="[](auto acc, auto x) { return __builtin_elementwise_max(acc, x); }",
+    cpp_sadd_op="[](auto left, auto right) { return __builtin_elementwise_max(left, right); }",
+    cpp_pmul_op="[](auto left, auto right) { return __builtin_elementwise_min(left, right); }",
+    add_idempotent=True,
+)
 
 
 @dataclass(frozen=True)
@@ -253,6 +272,17 @@ def _decode_ways() -> SignalExpr:
         return Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("s"))
 
 
+# 1D ring counting recurrences (segmented per row to bound the geometric growth; int64).
+
+def _count_good_strings(zero: int = 1, one: int = 3) -> SignalExpr:
+    # LeetCode 2466: f(i) = f(i-zero) + f(i-one), seeded by s.
+    with with_types(Type.Arith, ElementType.I64):
+        data = [0.0] * (max(zero, one) + 1)
+        data[zero] = 1.0
+        data[one] = 1.0
+        return Recurse(TIKernel(data), Var("s"))
+
+
 def _min_cost_climbing_stairs() -> SignalExpr:
     # LeetCode 746: f(i) = cost[i] + min(f(i-1), f(i-2)).
     # (min, +): cost on both taps; seed s carries f(0), f(1).
@@ -298,6 +328,17 @@ def _range_sum_2d() -> SignalExpr:
         return Recurse2D(TIKernel2D([[0.0, 1.0], [1.0, -1.0]]), Var2D("m").at(0)).at(0)
 
 
+def _is_subsequence() -> SignalExpr:
+    # LeetCode 392: is s a subsequence of t? f(i,j) = f(i,j-1) OR (s[i-1]==t[j-1] AND f(i-1,j-1)).
+    # Boolean OR/AND, 2D: left tap passes through (coeff one), diagonal tap is the match mask; seeded
+    # true at (0,0).
+    with with_types(BoolOrAnd, ElementType.I32):
+        z = Num(0.0)
+        m = Var2D("m").at(0)   # diagonal: s[i-1] == t[j-1]
+        kernel = TVKernel2D([[z, Num(1.0)], [z, m]])
+        return Recurse2D(kernel, Var2D("s").at(0)).at(0)
+
+
 def _lcs() -> SignalExpr:
     # LeetCode 1143 (also 1035; 516/3503 via a reversed axis). LCS max-form, a 2D (max,+) recurrence
     # dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + m(i,j)); match reward m on the diagonal tap.
@@ -332,6 +373,17 @@ def _edit_distance() -> SignalExpr:
         c = Var2D("c").at(0)
         kernel = TVKernel2D([[posinf, gap], [gap, c]])
         return Recurse2D(kernel, Impulse(0)).at(0)
+
+
+def _maximal_square() -> SignalExpr:
+    # LeetCode 221 (also 1277): side of the largest all-ones square ending at (i,j):
+    #   dp(i,j) = min(dp(i-1,j), dp(i,j-1), dp(i-1,j-1)) + 1  if grid==1 else 0.
+    # 2D TropMin with constant +1 taps (incl. the diagonal), like distance_transform. The mask is
+    # the ⊕ input g: 0 where grid==0 (forces dp=0), 1 on a grid==1 boundary cell (a single-cell
+    # square), and a large "+inf" sentinel on grid==1 interior cells (so the min(neighbors)+1 wins).
+    with with_types(Type.TropMin, ElementType.Float):
+        k = TIKernel2D([[INF, 1.0], [1.0, 1.0]])
+        return Recurse2D(k, Var2D("g").at(0)).at(0)
 
 
 # ── 2D tropical (min, +) ──────────────────────────────────────────────────────
@@ -400,6 +452,12 @@ SPECS: dict[str, Spec] = {
         Spec("leetcode-1035-uncrossed-lines", "leetcode_1035_uncrossed_lines", "2d", "tropmax",
              _lcs, display_name="Uncrossed Lines (LeetCode 1035)",
              description="Identical recurrence to LCS on two integer arrays; 2D TropMax alignment"),
+        Spec("leetcode-1092-shortest-common-supersequence", "leetcode_1092_shortest_common_supersequence", "2d", "tropmax",
+             _lcs, display_name="Shortest Common Supersequence (LeetCode 1092)",
+             description="length = len(a)+len(b)-LCS(a,b); the DP is the LCS recurrence; 2D TropMax alignment"),
+        Spec("leetcode-1216-valid-palindrome-iii", "leetcode_1216_valid_palindrome_iii", "2d", "tropmax",
+             _lcs, display_name="Valid Palindrome III (LeetCode 1216)",
+             description="k>=n-LPS(s); LPS = LCS-form over s vs its reverse (diagonal reward 2); 2D TropMax"),
         Spec("leetcode-516-longest-palindromic-subseq", "leetcode_516_longest_palindromic_subseq", "2d", "tropmax",
              _lcs, display_name="Longest Palindromic Subsequence (LeetCode 516)",
              description="LPS = LCS-form over one string vs its reverse (diagonal reward 2 on match); 2D TropMax"),
@@ -423,6 +481,21 @@ SPECS: dict[str, Spec] = {
         Spec("leetcode-304-range-sum-2d", "leetcode_304_range_sum_2d", "2d", "arith",
              _range_sum_2d, display_name="Range Sum Query 2D (LeetCode 304)",
              description="2D prefix sum / summed-area table: f[i][j]=m[i][j]+f[i-1][j]+f[i][j-1]-f[i-1][j-1]"),
+        Spec("leetcode-1314-matrix-block-sum", "leetcode_1314_matrix_block_sum", "2d", "arith",
+             _range_sum_2d, display_name="Matrix Block Sum (LeetCode 1314)",
+             description="same 2D prefix-sum / summed-area-table recurrence as 304; 2D arith"),
+
+        Spec("leetcode-221-maximal-square", "leetcode_221_maximal_square", "2d", "tropmin",
+             _maximal_square, display_name="Maximal Square (LeetCode 221)",
+             description="dp(i,j)=min(up,left,diag)+1 if grid==1 else 0; 2D TropMin, constant +1 taps"),
+        Spec("leetcode-1277-count-square-submatrices", "leetcode_1277_count_square_submatrices", "2d", "tropmin",
+             _maximal_square, display_name="Count Square Submatrices with All Ones (LeetCode 1277)",
+             description="per-cell dp identical to 221 (largest all-ones square side); 2D TropMin"),
+
+        # ── LeetCode 2D custom-semiring DP (boolean OR/AND) ──
+        Spec("leetcode-392-is-subsequence", "leetcode_392_is_subsequence", "2d", "boolorand",
+             _is_subsequence, display_name="Is Subsequence (LeetCode 392)",
+             description="f(i,j)=f(i,j-1) OR (match AND f(i-1,j-1)); boolean OR/AND semiring, 2D"),
 
         # ── LeetCode 1D tropical time-varying DPs ──
         Spec("leetcode-746-min-cost-climbing-stairs", "leetcode_746_min_cost_climbing_stairs", "1d", "tropmin",
@@ -447,5 +520,13 @@ SPECS: dict[str, Spec] = {
         Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",
              _decode_ways, display_name="Decode Ways (LeetCode 91)",
              description="f(i)=a(i)f(i-1)+b(i)f(i-2), a,b in {0,1}; arith time-varying, batched 64-step segments"),
+        Spec("leetcode-639-decode-ways-ii", "leetcode_639_decode_ways_ii", "1d", "arith",
+             _decode_ways, display_name="Decode Ways II (LeetCode 639)",
+             description="same 2nd-order TV recurrence as 91 but with '*' multiplicities (coeffs > 1); batched segments"),
+
+        # ── LeetCode 1D ring counting (segmented) ──
+        Spec("leetcode-2466-count-good-strings", "leetcode_2466_count_good_strings", "1d", "arith",
+             _count_good_strings, display_name="Count Ways to Build Good Strings (LeetCode 2466)",
+             description="f(i)=f(i-1)+f(i-3); arith ring, batched 64-step segments"),
     ]
 }

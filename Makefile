@@ -21,14 +21,16 @@ KERNELS := exponential_smoothing double_exp_smoothing box_filter_sat repeated_bo
            first_order_high_pass recursive_gaussian second_order_high_pass \
            second_order_low_pass distance_transform \
            nonuniform_recursive_filter welford_mean continued_fraction \
-           leetcode_1143_lcs leetcode_1035_uncrossed_lines \
-           leetcode_516_longest_palindromic_subseq leetcode_3503_longest_palindrome_concat \
-           leetcode_1458_max_dot_product leetcode_72_edit_distance \
-           leetcode_583_delete_two_strings leetcode_1312_min_insertion_palindrome \
-           leetcode_304_range_sum_2d \
+           leetcode_1143_lcs leetcode_1035_uncrossed_lines leetcode_1092_shortest_common_supersequence \
+           leetcode_1216_valid_palindrome_iii leetcode_516_longest_palindromic_subseq \
+           leetcode_3503_longest_palindrome_concat leetcode_1458_max_dot_product leetcode_72_edit_distance \
+           leetcode_583_delete_two_strings leetcode_1312_min_insertion_palindrome leetcode_392_is_subsequence \
+           leetcode_304_range_sum_2d leetcode_1314_matrix_block_sum \
+           leetcode_221_maximal_square leetcode_1277_count_square_submatrices \
            leetcode_746_min_cost_climbing_stairs leetcode_198_house_robber \
            leetcode_213_house_robber_ii leetcode_740_delete_and_earn \
-           leetcode_3259_max_energy_two_drinks leetcode_91_decode_ways
+           leetcode_3259_max_energy_two_drinks leetcode_91_decode_ways leetcode_639_decode_ways_ii \
+           leetcode_2466_count_good_strings
 
 .PHONY: all run clean $(KERNELS)
 
