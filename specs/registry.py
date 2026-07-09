@@ -288,7 +288,7 @@ def _decode_ways() -> SignalExpr:
     # probably does not matter.
     # This is not true for decode ways 2, where the result is modulo 1e9+7.
     # TODO: make this problem work fully with decode ways 2.
-    with with_types(Type.Arith, ElementType.I64):
+    with with_types(Type.Arith, ElementType.I32):
         return Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("s"))
 
 
@@ -940,12 +940,12 @@ SPECS: dict[str, Spec] = {
                          "TropMax 2-state mutual over transactions x days (RepeaterVec)"),
 
         # ── LeetCode 1D arithmetic time-varying counting ──
-        # Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",
-        #      _decode_ways, display_name="Decode Ways (LeetCode 91)",
-        #      description="f(i)=a(i)f(i-1)+b(i)f(i-2), a,b in {0,1}; arith time-varying, batched 64-step segments"),
-        Spec("leetcode-639-decode-ways-ii", "leetcode_639_decode_ways_ii", "1d", "arith",
-             _decode_ways, display_name="Decode Ways II (LeetCode 639)",
-             description="same 2nd-order TV recurrence as 91 but with '*' multiplicities (coeffs > 1); batched segments"),
+        Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",
+             _decode_ways, display_name="Decode Ways (LeetCode 91)",
+             description="f(i)=a(i)f(i-1)+b(i)f(i-2), a,b in {0,1}; arith time-varying, batched 64-step segments"),
+        # Spec("leetcode-639-decode-ways-ii", "leetcode_639_decode_ways_ii", "1d", "arith",
+        #      _decode_ways, display_name="Decode Ways II (LeetCode 639)",
+        #      description="same 2nd-order TV recurrence as 91 but with '*' multiplicities (coeffs > 1); batched segments"),
 
         # # ── LeetCode 1D ring counting (segmented) ──
         # Spec("leetcode-2466-count-good-strings", "leetcode_2466_count_good_strings", "1d", "arith",

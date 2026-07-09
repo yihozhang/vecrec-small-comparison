@@ -12,7 +12,7 @@ static constexpr int G = 64;  // digits per string (== row_size == DECODE_SEGMEN
 // is a valid pair ~half the time. a(0), b(0), b(1) multiply the zeroed post-reset history
 // so their value is irrelevant; set to 0 for a clean match with serial. s = 1 at each
 // segment's first step (the empty-prefix base), 0 elsewhere.
-static void build_inputs(int64_t* a, int64_t* b, int64_t* s, size_t N, uint64_t seed) {
+static void build_inputs(int32_t* a, int32_t* b, int32_t* s, size_t N, uint32_t seed) {
   std::mt19937_64 rng(seed);
   std::uniform_int_distribution<int> pa(0, 9);   // digit-is-nonzero ~90%
   std::uniform_int_distribution<int> pb(0, 1);   // valid pair ~50%
@@ -25,13 +25,13 @@ static void build_inputs(int64_t* a, int64_t* b, int64_t* s, size_t N, uint64_t 
 }
 
 // Serial reference: one independent decoding count per row, history reset at each row start.
-static void serial(const int64_t* a, const int64_t* b, const int64_t* s, int64_t* out,
+static void serial(const int32_t* a, const int32_t* b, const int32_t* s, int32_t* out,
                    int num_rows, int row_size) {
   for (int r = 0; r < num_rows; ++r) {
-    int64_t f1 = 0, f2 = 0;  // f(t-1), f(t-2): reset per row
+    int32_t f1 = 0, f2 = 0;  // f(t-1), f(t-2): reset per row
     for (int t = 0; t < row_size; ++t) {
       size_t x = (size_t)r * row_size + t;
-      int64_t f = a[x] * f1 + b[x] * f2 + s[x];
+      int32_t f = a[x] * f1 + b[x] * f2 + s[x];
       out[x] = f;
       f2 = f1;
       f1 = f;
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   // 65536 independent strings of 64 digits each => 2^22 elements.
   bench::Config cfg = bench::parse(argc, argv, /*rows=*/1 << 16, /*cols=*/G);
   bench::Dims<K> d = bench::physical_dims2<K, Kb>(cfg.num_rows, cfg.row_size);
-  std::vector<int64_t> a(d.n), b(d.n), s(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int32_t> a(d.n), b(d.n), s(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
   build_inputs(a.data(), b.data(), s.data(), d.n, cfg.seed);
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(a.data(), b.data(), s.data(), d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);
