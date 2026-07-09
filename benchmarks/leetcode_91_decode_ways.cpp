@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   using K = leetcode_91_decode_ways;
   using Kb = leetcode_91_decode_ways_baseline;
   // 65536 independent strings of 64 digits each => 2^22 elements.
-  bench::Config cfg = bench::parse(argc, argv, /*rows=*/1 << 16, /*cols=*/G);
+  bench::Config cfg = bench::parse(argc, argv, /*rows=*/2048, /*cols=*/2048);
   bench::Dims<K> d = bench::physical_dims2<K, Kb>(cfg.num_rows, cfg.row_size);
   std::vector<int32_t> a(d.n), b(d.n), s(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
   build_inputs(a.data(), b.data(), s.data(), d.n, cfg.seed);
