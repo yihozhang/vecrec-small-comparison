@@ -21,11 +21,11 @@
 static const char REGEX_S_BASE[] = "abcabcddeeabcde";
 static const char REGEX_P_BASE[] = "a*b.c*d.e*b.a*";
 
-static void serial(int32_t* out, int rows, int cols) {
+static void serial(int8_t* out, int rows, int cols) {
   for (int r = 0; r < rows; ++r) {
     for (int c = 0; c < cols; ++c) {
       size_t idx = (size_t)r * cols + c;
-      int32_t v = (r == 0 && c == 0) ? 1 : 0;  // dp[0][0]=true (Impulse seed); else false
+      int8_t v = (r == 0 && c == 0) ? 1 : 0;  // dp[0][0]=true (Impulse seed); else false
       char sc  = (r >= 1) ? (char)regex_s[r - 1] : REGEX_SENTINEL;
       char pc  = (c >= 1) ? (char)regex_p[c - 1] : REGEX_SENTINEL;
       char pc2 = (c >= 2) ? (char)regex_p[c - 2] : REGEX_SENTINEL;
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < p.size(); ++i) p[i] = (int8_t)REGEX_P_BASE[i % (sizeof(REGEX_P_BASE) - 1)];
   regex_set_inputs(s.data(), p.data());  // masks cache these pointers at construction; must precede runs
 
-  std::vector<int32_t> out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int8_t> out_opt(d.n), out_base(d.n), out_serial(d.n);
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);
   bench::Timing tbase = bench::run_vecrec(

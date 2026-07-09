@@ -522,8 +522,9 @@ struct RegexMatchMask {
             pcv[k] = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
         }
         const vec_type scv = sc, dotv = (elt_type)'.';
-        return ((pcv == dotv) | (pcv == scv)) & (vec_type)ONE;
+        return ((vec_type)(pcv == dotv) | (pcv == scv)) & (vec_type)ONE;
     }
+
     template <typename Reg_t>
     inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
         vec_type v;
@@ -561,7 +562,7 @@ struct RegexStarMask {
             pcv[k] = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
         }
         const vec_type starv = (elt_type)'*';
-        return (pcv == starv) & (vec_type)ONE;
+        return (vec_type)(pcv == starv) & (vec_type)ONE;
     }
     template <typename Reg_t>
     inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
@@ -607,7 +608,7 @@ struct RegexStarMatchMask {
             pc2v[k] = (c >= 2) ? (elt_type)p[c - 2] : (elt_type)REGEX_SENTINEL;
         }
         const vec_type starv = (elt_type)'*', scv = sc, dotv = (elt_type)'.';
-        return (pcv == starv) & ((pc2v == dotv) | (pc2v == scv)) & (vec_type)ONE;
+        return ((vec_type)(pcv == starv)) & ((vec_type)(pc2v == dotv) | (pc2v == scv)) & (vec_type)ONE;
     }
     template <typename Reg_t>
     inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
@@ -649,7 +650,7 @@ def _regex_matching() -> SignalExpr:
         f'for (size_t i = 0; i < regex_p_buf.size(); i++) regex_p_buf[i] = (int8_t)REGEX_P_BASE[i % (sizeof(REGEX_P_BASE) - 1)];\n'
         f'regex_set_inputs(regex_s_buf.data(), regex_p_buf.data());\n'
     )
-    with with_types(BoolOrAnd, ElementType.I32):
+    with with_types(BoolOrAnd, ElementType.I8):
         def mask(name: str, struct: str) -> SignalExpr:
             return Ith(ComputedSignal2D(name, cpp_struct=struct, prelude=REGEX_MATCH_PRELUDE,
                                         setup_code=setup_code, make_args=""), 0)
