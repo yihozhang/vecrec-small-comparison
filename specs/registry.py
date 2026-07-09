@@ -26,6 +26,8 @@ from vecrec.expr import (
     Recurse,
     Recurse2D,
     RecurseV,
+    RepeaterVec,
+    SAdd,
     SignalVector,
     TIKernel,
     TIKernel2D,
@@ -39,7 +41,7 @@ from vecrec.expr import (
 )
 from vecrec.expr.base import SignalExpr, SignalExpr2D
 from vecrec.expr.signal import ComputedSignal2D
-from vecrec.expr.signal_ops import Ith, PointwiseMul, SSub
+from vecrec.expr.signal_ops import ChangeSemiring, Ith, PointwiseMul, SNeg, SSub
 from vecrec.semiring import CustomSemiring
 from vecrec.util import ElementType
 
@@ -62,7 +64,6 @@ BoolOrAnd = CustomSemiring(
     cpp_pmul_op="[](auto left, auto right) { return __builtin_elementwise_min(left, right); }",
     add_idempotent=True,
 )
-
 
 @dataclass(frozen=True)
 class Spec:
@@ -453,6 +454,355 @@ def _maximal_square() -> SignalExpr:
         return Recurse2D(k, Var2D("g").at(0)).at(0)
 
 
+# Regular Expression Matching (LeetCode 10). The classic 2D boolean DP
+#   dp[r][c] = "does s[0..r) match p[0..c)"  (dp[0][0] = true; '.' matches any char,
+#   '*' matches zero-or-more of the preceding element) is a boolean OR/AND recurrence.
+# Grid row r indexes the string (transition char s[r-1]), column c the pattern (char
+# p[c-1]); the four DP branches decide which neighbour taps fire per cell, so each tap
+# coefficient is a time-varying 0/1 mask (the branch predicate) in the OR(=max)/AND(=min)
+# semiring. The masks are emitted by self-describing ComputedSignal2D structs: rather than
+# synthesising s and p from the grid position by a hash, each mask reads the string and
+# pattern from two external int8 buffers. ``setup_code`` (below) allocates+fills those buffers
+# and registers them via regex_set_inputs() before the kernel runs; the masks cache the two
+# pointers at construction. The buffers deliberately do NOT flow through ``make_args``: a
+# make_args signal becomes a by-value kernel-constructor parameter, and the number/type of
+# those parameters depends on the autotuned schedule (rows_per_iter, vector type), which vary
+# per machine. Since generated/ headers are regenerated per machine but the C++ baseline
+# (benchmarks/leetcode_10_regular_expression_matching.cpp) is committed source, a hard-coded
+# constructor call there would not survive a re-tune. Registering the buffers out-of-band
+# keeps the kernel constructor at the schedule-independent `(int row_size)`. The baseline
+# fills the same buffers the same way, so it evaluates exactly the same recurrence.
+# The external input string (s) and pattern (p), tiled to fill the benchmark grid. Letters
+# 'a'..'e'; the pattern mixes '*' (zero-or-more of the preceding element) and '.' (any single
+# char) so all four DP branches fire. Edit these to benchmark a different case. (These are the
+# schedule-search inputs; the C++ baseline .cpp keeps its own matching copy — see there.)
+REGEX_S_INPUT = "abcabcddeeabcde"
+REGEX_P_INPUT = "a*b.c*d.e*b.a*"
+
+REGEX_MATCH_PRELUDE = r"""
+static constexpr char REGEX_SENTINEL = (char)1;  // never equals a real char, '.' or '*'
+
+// The string s and pattern p are supplied as external int8 buffers (filled by the driver's
+// setup_code / the C++ baseline) and registered here before the kernel runs; each mask caches
+// these two pointers at construction. Grid row r reads s[r-1]; column c reads p[c-1]/p[c-2].
+// The buffers are sized to the grid (plus a small halo), so every guarded in-range index is
+// valid. Registering out-of-band (instead of via make_args) keeps the kernel constructor
+// schedule-independent — see the note at _regex_matching().
+static const int8_t *regex_s = nullptr;  // string chars,  length >= #rows
+static const int8_t *regex_p = nullptr;  // pattern chars, length >= row_size
+static inline void regex_set_inputs(const int8_t *s, const int8_t *p) { regex_s = s; regex_p = p; }
+
+// Does pattern char pc match string char sc ('.' matches any real char)?
+static inline bool regex_pat_matches(char pc, char sc) { return pc == '.' || pc == sc; }
+
+// M_diag: dp[r-1][c-1] tap, active iff p[c-1] matches s[r-1] ('.'/literal match).
+template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
+struct RegexMatchMask {
+    using elt_type = typename ElementType<vec_type>::type;
+    static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    static constexpr elt_type ONE = (elt_type)1;   // boolean one (true)
+    static constexpr elt_type ZERO = (elt_type)0;  // boolean zero (false)
+    const int8_t *__restrict__ s;  // string chars, indexed by (row - 1)
+    const int8_t *__restrict__ p;  // pattern chars, indexed by (col - 1)
+    int my_col;
+    int my_row;
+    RegexMatchMask() : s(regex_s), p(regex_p), my_col(0), my_row(block_row) {}
+    inline elt_type mask_at(int c) const {
+        char sc = (my_row >= 1) ? (char)s[my_row - 1] : REGEX_SENTINEL;
+        char pc = (c >= 1) ? (char)p[c - 1] : REGEX_SENTINEL;
+        return regex_pat_matches(pc, sc) ? ONE : ZERO;
+    }
+    // Whole-vector form of mask_at: broadcast the row-constant string char, gather the lanes
+    // pattern chars, and blend with branchless vector compares (pc=='.' | pc==sc) -> 1/0.
+    inline vec_type mask_vec(int c0) const {
+        const elt_type sc = (my_row >= 1) ? (elt_type)s[my_row - 1] : (elt_type)REGEX_SENTINEL;
+        vec_type pcv;
+        _Pragma("unroll") for (int k = 0; k < lanes; k++) {
+            const int c = c0 + k;
+            pcv[k] = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
+        }
+        const vec_type scv = sc, dotv = (elt_type)'.';
+        return ((pcv == dotv) | (pcv == scv)) & (vec_type)ONE;
+    }
+    template <typename Reg_t>
+    inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
+        vec_type v;
+        if constexpr (lanes == 1) {
+            v = mask_at(my_col);
+        } else {
+            v = mask_vec(my_col);  // whole-vector branchless compares (no per-lane mask_at)
+        }
+        _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
+        my_col += lanes;
+    }
+    void reset_and_next_row() { my_col = 0; my_row += 1; }
+};
+
+// M_back2: dp[r][c-2] tap (zero occurrences of the starred element), active iff p[c-1]=='*'.
+template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
+struct RegexStarMask {
+    using elt_type = typename ElementType<vec_type>::type;
+    static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    static constexpr elt_type ONE = (elt_type)1;
+    static constexpr elt_type ZERO = (elt_type)0;
+    const int8_t *__restrict__ p;  // pattern chars, indexed by (col - 1)
+    int my_col;
+    int my_row;
+    RegexStarMask() : p(regex_p), my_col(0), my_row(block_row) {}
+    inline elt_type mask_at(int c) const {
+        char pc = (c >= 1) ? (char)p[c - 1] : REGEX_SENTINEL;
+        return (pc == '*') ? ONE : ZERO;
+    }
+    // Whole-vector form of mask_at: gather the lanes pattern chars, compare against '*' -> 1/0.
+    inline vec_type mask_vec(int c0) const {
+        vec_type pcv;
+        _Pragma("unroll") for (int k = 0; k < lanes; k++) {
+            const int c = c0 + k;
+            pcv[k] = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
+        }
+        const vec_type starv = (elt_type)'*';
+        return (pcv == starv) & (vec_type)ONE;
+    }
+    template <typename Reg_t>
+    inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
+        vec_type v;
+        if constexpr (lanes == 1) {
+            v = mask_at(my_col);
+        } else {
+            v = mask_vec(my_col);  // whole-vector branchless compares (no per-lane mask_at)
+        }
+        _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
+        my_col += lanes;
+    }
+    void reset_and_next_row() { my_col = 0; my_row += 1; }
+};
+
+// M_back1 (dp[r][c-1]) and M_up (dp[r-1][c]) taps (one-or-more occurrences): both active
+// iff p[c-1]=='*' AND the preceding element p[c-2] matches s[r-1].
+template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
+struct RegexStarMatchMask {
+    using elt_type = typename ElementType<vec_type>::type;
+    static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    static constexpr elt_type ONE = (elt_type)1;
+    static constexpr elt_type ZERO = (elt_type)0;
+    const int8_t *__restrict__ s;  // string chars, indexed by (row - 1)
+    const int8_t *__restrict__ p;  // pattern chars, indexed by (col - 1)
+    int my_col;
+    int my_row;
+    RegexStarMatchMask() : s(regex_s), p(regex_p), my_col(0), my_row(block_row) {}
+    inline elt_type mask_at(int c) const {
+        char sc  = (my_row >= 1) ? (char)s[my_row - 1] : REGEX_SENTINEL;
+        char pc  = (c >= 1) ? (char)p[c - 1] : REGEX_SENTINEL;
+        char pc2 = (c >= 2) ? (char)p[c - 2] : REGEX_SENTINEL;
+        return (pc == '*' && regex_pat_matches(pc2, sc)) ? ONE : ZERO;
+    }
+    // Whole-vector form of mask_at: gather the lanes p[c-1]/p[c-2] chars and combine with
+    // branchless vector compares: (pc=='*') & (pc2=='.' | pc2==sc) -> 1/0.
+    inline vec_type mask_vec(int c0) const {
+        const elt_type sc = (my_row >= 1) ? (elt_type)s[my_row - 1] : (elt_type)REGEX_SENTINEL;
+        vec_type pcv, pc2v;
+        _Pragma("unroll") for (int k = 0; k < lanes; k++) {
+            const int c = c0 + k;
+            pcv[k]  = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
+            pc2v[k] = (c >= 2) ? (elt_type)p[c - 2] : (elt_type)REGEX_SENTINEL;
+        }
+        const vec_type starv = (elt_type)'*', scv = sc, dotv = (elt_type)'.';
+        return (pcv == starv) & ((pc2v == dotv) | (pc2v == scv)) & (vec_type)ONE;
+    }
+    template <typename Reg_t>
+    inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
+        vec_type v;
+        if constexpr (lanes == 1) {
+            v = mask_at(my_col);
+        } else {
+            v = mask_vec(my_col);  // whole-vector branchless compares (no per-lane mask_at)
+        }
+        _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
+        my_col += lanes;
+    }
+    void reset_and_next_row() { my_col = 0; my_row += 1; }
+};
+"""
+
+
+def _regex_matching() -> SignalExpr:
+    # LeetCode 10: dp[r][c] = OR of the four active branch taps, seeded dp[0][0]=true.
+    #   dp[r][c] = (M_back1 & dp[r][c-1]) | (M_back2 & dp[r][c-2])       (same row)
+    #            | (M_up    & dp[r-1][c]) | (M_diag  & dp[r-1][c-1])     (row back)
+    # (& = AND = min, | = OR = max). The base row/column emerge from the masks: the '*'
+    # zero-occurrence tap (M_back2, column-only) propagates dp[0][*], and every tap that
+    # would cross the empty-string boundary reads an out-of-range (zero) neighbour.
+    # The four coefficients are the time-varying 0/1 masks defined in the prelude above.
+    # setup_code (emitted once in the schedule-search driver, where `N` and `row_size` are in
+    # scope): allocate the string/pattern buffers, tile the fixed inputs across them, and
+    # register them via regex_set_inputs() before the kernel is constructed. regex_s_buf is
+    # row-indexed (length = #rows = N / row_size), regex_p_buf column-indexed (length =
+    # row_size); both get a +64 halo for lane over-read and the trailing reset_and_next_row().
+    # Registering out-of-band (rather than passing the pointers through make_args) leaves the
+    # kernel constructor at `(int row_size)`, independent of the autotuned schedule — see the
+    # note above the prelude for why the committed C++ baseline needs that.
+    setup_code = (
+        f'static const char REGEX_S_BASE[] = "{REGEX_S_INPUT}";\n'
+        f'static const char REGEX_P_BASE[] = "{REGEX_P_INPUT}";\n'
+        f'std::vector<int8_t> regex_s_buf(N / row_size + 64), regex_p_buf(row_size + 64);\n'
+        f'for (size_t i = 0; i < regex_s_buf.size(); i++) regex_s_buf[i] = (int8_t)REGEX_S_BASE[i % (sizeof(REGEX_S_BASE) - 1)];\n'
+        f'for (size_t i = 0; i < regex_p_buf.size(); i++) regex_p_buf[i] = (int8_t)REGEX_P_BASE[i % (sizeof(REGEX_P_BASE) - 1)];\n'
+        f'regex_set_inputs(regex_s_buf.data(), regex_p_buf.data());\n'
+    )
+    with with_types(BoolOrAnd, ElementType.I32):
+        def mask(name: str, struct: str) -> SignalExpr:
+            return Ith(ComputedSignal2D(name, cpp_struct=struct, prelude=REGEX_MATCH_PRELUDE,
+                                        setup_code=setup_code, make_args=""), 0)
+        m_diag = mask("rx_diag", "RegexMatchMask")
+        m_back2 = mask("rx_star", "RegexStarMask")
+        m_starmatch = mask("rx_starmatch", "RegexStarMatchMask")  # shared by M_back1 and M_up
+        z = Num(BoolOrAnd.zero())  # boolean false (semiring zero): self / unused taps
+        kernel = TVKernel2D(
+            [
+                [z,           m_starmatch, m_back2],  # di=0: self, dp[r][c-1], dp[r][c-2]
+                [m_starmatch, m_diag,      z],        # di=1: dp[r-1][c], dp[r-1][c-1], (unused)
+            ]
+        )
+        return Recurse2D(kernel, Impulse(1.0)).at(0)
+
+
+# Best Time to Buy and Sell Stock IV (LeetCode 188), as a 2-state mutual recurrence over
+# x = number of transactions (rows) and y = day (columns), in TropMax (plus=max, times=+):
+#   f_1(x,y) = max(f_1(x,y-1),        f_2(x-1,y-1) - g(y))   # holding a share
+#   f_2(x,y) = max(f_1(x,y-1) + g(y), f_2(x,y-1))            # not holding
+# g(y) is the day-y price: it depends only on the column, so it is emitted by a column-indexed
+# ComputedSignal2D (StockPriceSignal2D) that returns g[my_col], the same value for every row --
+# analogous to the on-the-fly score in vec-rec/benchmarks/trop/affine_gap.py. The price buffer is
+# registered out-of-band via stock_set_prices() (empty make_args -> the kernel constructor stays
+# `(int row_size)`, schedule-independent -- same rationale as _regex_matching).
+STOCK_PRICE_PRELUDE = r"""
+// Daily prices g(y), column-indexed (identical for every transaction row x), supplied as an
+// external int32 buffer registered before the kernel runs. my_col tracks the day, reset per row.
+static const int32_t *stock_g = nullptr;   // prices, length >= row_size (+ halo for lane over-read)
+static inline void stock_set_prices(const int32_t *g) { stock_g = g; }
+
+template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
+struct StockPriceSignal2D {
+    using elt_type = typename ElementType<vec_type>::type;
+    static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    const int32_t *__restrict__ g;
+    int my_col;
+    StockPriceSignal2D() : g(stock_g), my_col(0) {}
+    template <typename Reg_t>
+    inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
+        vec_type gv;
+        if constexpr (lanes == 1) {
+            gv = (elt_type)g[my_col];
+        } else {
+            _Pragma("unroll") for (int k = 0; k < lanes; k++) gv[k] = (elt_type)g[my_col + k];
+        }
+        _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = gv;
+        my_col += lanes;
+    }
+    void reset_and_next_row() { my_col = 0; }
+};
+"""
+
+# Deterministic day prices in [1, 100] from a position hash; the C++ baseline fills the price
+# buffer with the identical formula so it evaluates the same recurrence.
+STOCK_PRICE_SETUP = (
+    "std::vector<int32_t> stock_g_buf(row_size + 64);\n"
+    "for (size_t j = 0; j < stock_g_buf.size(); j++) {\n"
+    "    unsigned h = (unsigned)j * 2654435761u + 1013904223u; h ^= h >> 15;\n"
+    "    stock_g_buf[j] = (int32_t)(1 + (int)(h % 100u));\n"
+    "}\n"
+    "stock_set_prices(stock_g_buf.data());\n"
+)
+
+
+def _best_time_stock_iv() -> SignalExpr:
+    # LeetCode 188. RepeaterVec over x (transactions): each row is a 1D column recurrence pair
+    # [f_1, f_2]. f_1 (holding) is a prefix-max fed the previous row's f_2 on the diagonal minus
+    # the price; f_2 (not holding) is a prefix-max fed the current row's f_1 (delayed one day) plus
+    # the price. The origin is seeded with the TropMax one (0) so f_2(0,0)=0 (zero profit, zero
+    # transactions); row 0 then stays f_2==0 / f_1==-inf (the "0 transactions" base), and rows x>=1
+    # build up the k-transaction profit. Output = f_2 (max profit while not holding).
+    with with_types(Type.TropMax, ElementType.I32):
+        neginf = Type.TropMax.zero()   # -inf: lag-0 self tap (no instantaneous self-dependence)
+        one = Type.TropMax.one()       # 0:    lag-1 self coefficient (prefix-max carries forward)
+        z = TIKernel.z()               # unit column delay (z^-1)
+        price = ComputedSignal2D("g", cpp_struct="StockPriceSignal2D", prelude=STOCK_PRICE_PRELUDE,
+                                 setup_code=STOCK_PRICE_SETUP, make_args="")
+
+        def body(prev):
+            g = Ith(price, 0)                                    # g(y)
+            neg_g = ChangeSemiring(SNeg(ChangeSemiring(g, Type.Arith)), Type.TropMax)  # -g(y)
+            f2_prev_diag = Convolve(z, prev.at(1).at(0))         # f_2(x-1, y-1)
+            # f_1(x,y) = max(f_1(x,y-1), f_2(x-1,y-1) - g(y))
+            buy = PointwiseMul(f2_prev_diag, neg_g)              # f_2(x-1,y-1) - g(y)
+            f1 = Recurse(TIKernel([neginf, one]), buy)
+            # f_2(x,y) = max(f_1(x,y-1) + g(y), f_2(x,y-1)), seeded f_2(0,0)=0
+            sell = PointwiseMul(Convolve(z, f1), g)              # f_1(x,y-1) + g(y)
+            f2 = Recurse(TIKernel([neginf, one]), SAdd(sell, Impulse(Type.TropMax.one())))
+            return SignalVector([f1, f2])
+
+        rv = RepeaterVec(2, body)
+        return Ith(rv.at(1), 0)  # current-row f_2 (max profit, not holding)
+
+
+def _best_time_stock_i() -> SignalExpr:
+    # Best Time to Buy and Sell Stock (LeetCode 121): one transaction, the classic O(n) scan
+    #   f1(i) = min(f1(i-1), g[i])            # cheapest price seen so far
+    #   f2(i) = max(f2(i-1), g[i] - f1(i-1))  # best profit selling on day i (buy strictly earlier)
+    # f1 is a min-scan and f2 a max-scan -- different (tropical) semirings. To keep everything in
+    # one semiring (so the two scans dilate together), we carry pm(i) = -f1(i) = max(pm(i-1), -g[i])
+    # instead of f1: then g[i] - f1(i-1) = g[i] + pm(i-1), and both scans are TropMax (max,+) prefix
+    # maxima. Output is f2 (the max profit); f1 = -pm is left implicit. g has no additive inverse in
+    # TropMax, so -g is formed in Arith and viewed back (as in _dungeon_game / affine_gap).
+    with with_types(Type.TropMax, ElementType.I32):
+        g = Var("g")
+        zero = Type.TropMax.zero()   # -inf: lag-0 self tap (no instantaneous self-dependence)
+        one = Type.TropMax.one()     # 0:    lag-1 self coefficient (prefix scan carries forward)
+        neg_g = ChangeSemiring(SNeg(ChangeSemiring(g, Type.Arith)), Type.TropMax)  # -g(i)
+        pm = Recurse(TIKernel([zero, one]), neg_g)          # pm(i) = max(pm(i-1), -g(i)) = -min g[0..i]
+        pm_prev = Convolve(TIKernel.z(), pm)                # pm(i-1)
+        buy_low = PointwiseMul(g, pm_prev)                  # g(i) + pm(i-1) = g(i) - min g[0..i-1]
+        f2 = Recurse(TIKernel([zero, one]), buy_low)        # f2(i) = max(f2(i-1), g(i) - f1(i-1))
+        return f2
+
+
+def _best_time_stock_with_cooldown() -> SignalExpr:
+    # Best Time to Buy and Sell Stock with Cooldown (LeetCode 309). The classic 3-state DP
+    #   rest[i] = max(rest[i-1], sold[i-1])          # idle: post-cooldown / never held
+    #   hold[i] = max(hold[i-1], rest[i-1] - g[i])   # holding a share (buying reads rest, not sold,
+    #                                                #   which is exactly the one-day cooldown)
+    #   sold[i] = hold[i-1] + g[i]                   # just sold today
+    # sold is not itself recursive -- it is hold delayed one day plus the price -- so we inline
+    # sold[i-1] = hold[i-2] + g[i-1] into rest and collapse the system to a 2-state mutual
+    # recurrence over (rest, hold), which VecRec dilates like any 2x2 (cf. _max_energy_two_drinks /
+    # _double_exp_smoothing) rather than needing a 3-component RecurseV:
+    #   rest[i] = max(rest[i-1],  hold[i-2] + g[i-1])
+    #   hold[i] = max(hold[i-1],  rest[i-1] - g[i])
+    # (max, +): +g(i-1) and -g(i) ride on the cross taps as time-varying coefficients (-g is formed
+    # in Arith and viewed back into TropMax, as in _best_time_stock_i). Two seeds carry the base
+    # cases: rest gets the TropMax one (0) at day 0 (rest[-1]=0, zero profit), and hold gets -g
+    # masked to day 0 (hold[0]=-g[0], so buying on day 0 is allowed). Output = rest, the running max
+    # profit while not holding; the LeetCode answer max(rest, sold) on the last day is the next rest,
+    # which rest already carries forward.
+    with with_types(Type.TropMax, ElementType.I32):
+        g = Var("g")
+        zero = Num(Type.TropMax.zero())   # -inf: semiring zero (empty tap / no lag-0 self-dep)
+        one = Type.TropMax.one()          # 0:    semiring one (prefix-max carries a tap forward)
+        neg_g = ChangeSemiring(SNeg(ChangeSemiring(g, Type.Arith)), Type.TropMax)  # -g(i)
+        g_prev = Convolve(TIKernel.z(), g)                                          # g(i-1)
+        # 2x2 kernel over (rest=0, hold=1); each TVKernel lists taps [lag0, lag1, lag2].
+        A = KernelMatrix(
+            [
+                [TVKernel([zero, Num(one), zero]), TVKernel([zero, zero, g_prev])],   # rest row
+                [TVKernel([zero, neg_g, zero]),    TVKernel([zero, Num(one), zero])],  # hold row
+            ]
+        )
+        rest_seed = Impulse(Type.TropMax.one())                       # rest[0] = 0 (base rest[-1]=0)
+        hold_seed = PointwiseMul(neg_g, Impulse(Type.TropMax.one()))  # -g masked to day 0
+        F = RecurseV(A, SignalVector([rest_seed, hold_seed]))
+        return VectorAt(F, 0)  # rest: max profit while not holding
+
+
 # ── Registry ──────────────────────────────────────────────────────────────────
 SPECS: dict[str, Spec] = {
     s.name: s
@@ -545,6 +895,10 @@ SPECS: dict[str, Spec] = {
         #      description="per-cell dp identical to 221 (largest all-ones square side); 2D TropMin"),
 
         # ── LeetCode 2D custom-semiring DP (boolean OR/AND) ──
+        Spec("leetcode-10-regular-expression-matching", "leetcode_10_regular_expression_matching",
+             "2d", "boolorand", _regex_matching,
+             display_name="Regular Expression Matching (LeetCode 10)",
+             description="dp[r][c]= match/'.'/'*' branches as time-varying 0/1 masks; boolean OR/AND, 2D"),
         # Spec("leetcode-392-is-subsequence", "leetcode_392_is_subsequence", "2d", "boolorand",
         #      _is_subsequence, display_name="Is Subsequence (LeetCode 392)",
         #      description="f(i,j)=f(i,j-1) OR (match AND f(i-1,j-1)); boolean OR/AND semiring, 2D"),
@@ -567,6 +921,23 @@ SPECS: dict[str, Spec] = {
         Spec("leetcode-3259-max-energy-two-drinks", "leetcode_3259_max_energy_two_drinks", "1d", "tropmax",
              _max_energy_two_drinks, display_name="Maximum Energy Boost From Two Drinks (LeetCode 3259)",
              description="dp_A[i]=A[i]+max(dp_A[i-1],dp_B[i-2]); dp_B symmetric; TropMax 2x2 mutual"),
+        Spec("leetcode-309-best-time-stock-cooldown", "leetcode_309_best_time_stock_cooldown", "1d", "tropmax",
+             _best_time_stock_with_cooldown,
+             display_name="Best Time to Buy and Sell Stock with Cooldown (LeetCode 309)",
+             description="rest[i]=max(rest[i-1],hold[i-2]+g[i-1]); hold[i]=max(hold[i-1],rest[i-1]-g[i]); "
+                         "TropMax 2-state mutual (sold inlined)"),
+
+        # ── LeetCode 1D tropical prefix scan ──
+        Spec("leetcode-121-best-time-stock", "leetcode_121_best_time_stock", "1d", "tropmax",
+             _best_time_stock_i, display_name="Best Time to Buy and Sell Stock (LeetCode 121)",
+             description="f1(i)=min(f1(i-1),g[i]); f2(i)=max(f2(i-1),g[i]-f1(i-1)); "
+                         "TropMax prefix scans (pm=-f1)"),
+
+        # ── LeetCode 2D tropical mutual recurrence ──
+        Spec("leetcode-188-best-time-stock-iv", "leetcode_188_best_time_stock_iv", "2d", "tropmax",
+             _best_time_stock_iv, display_name="Best Time to Buy and Sell Stock IV (LeetCode 188)",
+             description="f1(x,y)=max(f1(x,y-1),f2(x-1,y-1)-g); f2(x,y)=max(f1(x,y-1)+g,f2(x,y-1)); "
+                         "TropMax 2-state mutual over transactions x days (RepeaterVec)"),
 
         # ── LeetCode 1D arithmetic time-varying counting ──
         # Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",

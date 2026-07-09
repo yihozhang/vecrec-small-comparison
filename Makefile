@@ -30,7 +30,8 @@ KERNELS := exponential_smoothing double_exp_smoothing box_filter_sat repeated_bo
            leetcode_746_min_cost_climbing_stairs leetcode_198_house_robber \
            leetcode_213_house_robber_ii leetcode_740_delete_and_earn \
            leetcode_3259_max_energy_two_drinks leetcode_91_decode_ways leetcode_639_decode_ways_ii \
-           leetcode_2466_count_good_strings
+           leetcode_2466_count_good_strings leetcode_10_regular_expression_matching \
+           leetcode_188_best_time_stock_iv leetcode_121_best_time_stock
 
 .PHONY: all run clean $(KERNELS)
 
