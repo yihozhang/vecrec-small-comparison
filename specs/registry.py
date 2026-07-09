@@ -274,36 +274,85 @@ def _distance_transform() -> SignalExpr:
         return Recurse2D(TIKernel2D(_DT_KERNEL), g.at(0)).at(0)
 
 
-
+################################################################################
 # ── LeetCode dynamic-programming recurrences ──────────────────────────────────
-# Node-weighted DPs carry the per-step reward/cost on the time-varying feedback taps;
-# a seed input carries the base cases (the semiring zero elsewhere).
+################################################################################
 
 def _decode_ways() -> SignalExpr:
     # LeetCode 91: f(i) = a(i)*f(i-1) + b(i)*f(i-2), a(i),b(i) in {0,1} (valid single / pair).
     # Counts grow ~Fibonacci, so run short independent strings (one per row, reset per row);
     # seed s injects the f=1 empty-prefix base at each segment start.
+    # YZ: I choose to not specialize a and b because the problem size is destined to be small 
+    # due to the fibonacci like growth anyway, so the actual throughput on the actual problem
+    # probably does not matter.
+    # This is not true for decode ways 2, where the result is modulo 1e9+7.
+    # TODO: make this problem work fully with decode ways 2.
     with with_types(Type.Arith, ElementType.I64):
         return Recurse(TVKernel([Num(0.0), Var("a"), Var("b")]), Var("s"))
 
 
 # 1D ring counting recurrences (segmented per row to bound the geometric growth; int64).
 
-def _count_good_strings(zero: int = 1, one: int = 3) -> SignalExpr:
-    # LeetCode 2466: f(i) = f(i-zero) + f(i-one), seeded by s.
-    with with_types(Type.Arith, ElementType.I64):
-        data = [0.0] * (max(zero, one) + 1)
-        data[zero] = 1.0
-        data[one] = 1.0
-        return Recurse(TIKernel(data), Var("s"))
+# YZ: Not suitable because in the actual problem zero and one could be big.
+# def _count_good_strings(zero: int = 1, one: int = 3) -> SignalExpr:
+#     # LeetCode 2466: f(i) = f(i-zero) + f(i-one), seeded by s.
+#     with with_types(Type.Arith, ElementType.I64):
+#         data = [0.0] * (max(zero, one) + 1)
+#         data[zero] = 1.0
+#         data[one] = 1.0
+#         return Recurse(TIKernel(data), Var("s"))
+
+
+# The dp(0)=dp(1)=0 base case (you stand for free on step 0 or 1) is produced on the fly by a
+# ComputedSignal2D whose C++ struct emits the TropMin one (0) at the first two stream positions
+# and the TropMin zero (+inf) sentinel thereafter — no seed/impulse input signal. Instantiated by
+# codegen as MinCostBase2D<vec_type, n_rows, block_size, block_row>; used via Ith(_, 0) as a 1D
+# signal (same self-describing pattern as WelfordWeight2D).
+MIN_COST_BASE_PRELUDE = r"""
+template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
+struct MinCostBase2D {
+    using elt_type = typename ElementType<vec_type>::type;
+    static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    static constexpr elt_type ONE = (elt_type)0;                 // TropMin one
+    static constexpr elt_type INF = (elt_type)(INT32_MAX / 8);   // TropMin zero (+inf)
+    int my_col;
+    MinCostBase2D() : my_col(0) {}
+    template <typename Reg_t>
+    inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
+        vec_type v = INF;                                        // common case: past the base window
+        if constexpr (block_row == 0) {
+            if (my_col < 2) {                                    // only the first call(s) touch the base
+                if constexpr (lanes == 1) {
+                    v = ONE;                                     // serial: first two calls return 0, 0
+                } else {
+                    _Pragma("unroll") for (int k = 0; k < lanes; k++) v[k] = (my_col + k < 2) ? ONE : INF;
+                }
+            }
+        }
+        _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
+        my_col += lanes;
+    }
+    void reset_and_next_row() { my_col = 0; }
+};
+"""
 
 
 def _min_cost_climbing_stairs() -> SignalExpr:
-    # LeetCode 746: f(i) = cost[i] + min(f(i-1), f(i-2)).
-    # (min, +): cost on both taps; seed s carries f(0), f(1).
+    # LeetCode 746: dp(i) = min(dp(i-1)+cost[i-1], dp(i-2)+cost[i-2]); dp(0)=dp(1)=0.
+    # (min, +): you stand for free on step 0 or 1 and pay cost[k] to *leave* step k, so the cost
+    # rides on the source (lag) taps — cost[i-1] on the f(i-1) tap and cost[i-2] on the f(i-2) tap
+    # (a 1- and 2-step delay of c). The dp(0)=dp(1)=0 base is emitted on the fly by a
+    # ComputedSignal2D (MinCostBase2D above), so no seed input array is needed.
     with with_types(Type.TropMin, ElementType.I32):
         c = Var("c")
-        return Recurse(TVKernel([Num(Type.TropMin.zero()), c, c]), Var("s"))
+        kernel = TVKernel([
+            Num(Type.TropMin.zero()),
+            Convolve(TIKernel.z(), c),      # cost[i-1] on the f(i-1) tap
+            Convolve(TIKernel.z(n=-2), c),  # cost[i-2] on the f(i-2) tap
+        ])
+        base = Ith(ComputedSignal2D("base", cpp_struct="MinCostBase2D",
+                                    prelude=MIN_COST_BASE_PRELUDE, setup_code="", make_args=""), 0)
+        return Recurse(kernel, base)
 
 
 def _house_robber() -> SignalExpr:
@@ -312,12 +361,12 @@ def _house_robber() -> SignalExpr:
     with with_types(Type.TropMax, ElementType.I32):
         return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("n")]), Var("s"))
 
-
-def _delete_and_earn() -> SignalExpr:
-    # LeetCode 740: dp(v) = max(dp(v-1), dp(v-2) + total[v]), total[v] = v * count(v).
-    # House Robber over the value axis (same recurrence as 198).
-    with with_types(Type.TropMax, ElementType.I32):
-        return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("t")]), Var("s"))
+# Duplicate of house robber I think
+# def _delete_and_earn() -> SignalExpr:
+#     # LeetCode 740: dp(v) = max(dp(v-1), dp(v-2) + total[v]), total[v] = v * count(v).
+#     # House Robber over the value axis (same recurrence as 198).
+#     with with_types(Type.TropMax, ElementType.I32):
+#         return Recurse(TVKernel([Num(Type.TropMax.zero()), Num(0.0), Var("t")]), Var("s"))
 
 
 def _max_energy_two_drinks() -> SignalExpr:
@@ -342,16 +391,16 @@ def _range_sum_2d() -> SignalExpr:
     with with_types(Type.Arith, ElementType.I32):
         return Recurse2D(TIKernel2D([[0.0, 1.0], [1.0, -1.0]]), Var2D("m").at(0)).at(0)
 
-
-def _is_subsequence() -> SignalExpr:
-    # LeetCode 392: is s a subsequence of t? f(i,j) = f(i,j-1) OR (s[i-1]==t[j-1] AND f(i-1,j-1)).
-    # Boolean OR/AND, 2D: left tap passes through (coeff one), diagonal tap is the match mask; seeded
-    # true at (0,0).
-    with with_types(BoolOrAnd, ElementType.I32):
-        z = Num(0.0)
-        m = Var2D("m").at(0)   # diagonal: s[i-1] == t[j-1]
-        kernel = TVKernel2D([[z, Num(1.0)], [z, m]])
-        return Recurse2D(kernel, Var2D("s").at(0)).at(0)
+# YZ: DP is not the most efficient solution for this one. Optimal solution uses two pointer.
+# def _is_subsequence() -> SignalExpr:
+#     # LeetCode 392: is s a subsequence of t? f(i,j) = f(i,j-1) OR (s[i-1]==t[j-1] AND f(i-1,j-1)).
+#     # Boolean OR/AND, 2D: left tap passes through (coeff one), diagonal tap is the match mask; seeded
+#     # true at (0,0).
+#     with with_types(BoolOrAnd, ElementType.I32):
+#         z = Num(0.0)
+#         m = Var2D("m").at(0)   # diagonal: s[i-1] == t[j-1]
+#         kernel = TVKernel2D([[z, Num(1.0)], [z, m]])
+#         return Recurse2D(kernel, Var2D("s").at(0)).at(0)
 
 
 def _lcs() -> SignalExpr:
@@ -372,6 +421,7 @@ def _lcs() -> SignalExpr:
 def _max_dot_product() -> SignalExpr:
     # LeetCode 1458: dp(i,j) = max(dp(i-1,j), dp(i,j-1), dp(i-1,j-1) + p, p), p = nums1[i]*nums2[j].
     # LCS-shaped; the product p is both the diagonal tap and the standalone ⊕ input.
+    # TODO: make p compute nums1[i]*nums2[i]
     with with_types(Type.TropMax, ElementType.I32):
         z = Num(Type.TropMax.zero())
         p = Var2D("p").at(0)
@@ -396,6 +446,8 @@ def _maximal_square() -> SignalExpr:
     # 2D TropMin with constant +1 taps (incl. the diagonal), like distance_transform. The mask is
     # the ⊕ input g: 0 where grid==0 (forces dp=0), 1 on a grid==1 boundary cell (a single-cell
     # square), and a large "+inf" sentinel on grid==1 interior cells (so the min(neighbors)+1 wins).
+    # YZ: this is not faithful to the LeetCode problem, because the problem reset dp(i, j) when grid == 0.
+    # Since the grid == 0 check is non-recursive, I think this is an acceptable benchmark to predict the performance.
     with with_types(Type.TropMin, ElementType.I32):
         k = TIKernel2D([[INF, 1.0], [1.0, 1.0]])
         return Recurse2D(k, Var2D("g").at(0)).at(0)
@@ -493,23 +545,23 @@ SPECS: dict[str, Spec] = {
         #      description="per-cell dp identical to 221 (largest all-ones square side); 2D TropMin"),
 
         # ── LeetCode 2D custom-semiring DP (boolean OR/AND) ──
-        Spec("leetcode-392-is-subsequence", "leetcode_392_is_subsequence", "2d", "boolorand",
-             _is_subsequence, display_name="Is Subsequence (LeetCode 392)",
-             description="f(i,j)=f(i,j-1) OR (match AND f(i-1,j-1)); boolean OR/AND semiring, 2D"),
+        # Spec("leetcode-392-is-subsequence", "leetcode_392_is_subsequence", "2d", "boolorand",
+        #      _is_subsequence, display_name="Is Subsequence (LeetCode 392)",
+        #      description="f(i,j)=f(i,j-1) OR (match AND f(i-1,j-1)); boolean OR/AND semiring, 2D"),
 
         # ── LeetCode 1D tropical time-varying DPs ──
         Spec("leetcode-746-min-cost-climbing-stairs", "leetcode_746_min_cost_climbing_stairs", "1d", "tropmin",
              _min_cost_climbing_stairs, display_name="Min Cost Climbing Stairs (LeetCode 746)",
-             description="f(i)=cost[i]+min(f(i-1),f(i-2)); TropMin time-varying"),
+             description="dp(i)=min(dp(i-1)+cost[i-1],dp(i-2)+cost[i-2]), dp(0)=dp(1)=0; TropMin time-varying"),
         Spec("leetcode-198-house-robber", "leetcode_198_house_robber", "1d", "tropmax",
              _house_robber, display_name="House Robber (LeetCode 198)",
              description="f(i)=max(f(i-1), f(i-2)+nums[i]); TropMax time-varying"),
         # Spec("leetcode-213-house-robber-ii", "leetcode_213_house_robber_ii", "1d", "tropmax",
         #      _house_robber, display_name="House Robber II (LeetCode 213)",
         #      description="Circular House Robber; same max(f(i-1), f(i-2)+nums[i]) recurrence as 198; TropMax TV"),
-        Spec("leetcode-740-delete-and-earn", "leetcode_740_delete_and_earn", "1d", "tropmax",
-             _delete_and_earn, display_name="Delete and Earn (LeetCode 740)",
-             description="dp(v)=max(dp(v-1), dp(v-2)+total[v]); House Robber over the value axis; TropMax TV"),
+        # Spec("leetcode-740-delete-and-earn", "leetcode_740_delete_and_earn", "1d", "tropmax",
+        #      _delete_and_earn, display_name="Delete and Earn (LeetCode 740)",
+        #      description="dp(v)=max(dp(v-1), dp(v-2)+total[v]); House Robber over the value axis; TropMax TV"),
 
         # ── LeetCode 1D tropical mutual recurrence ──
         Spec("leetcode-3259-max-energy-two-drinks", "leetcode_3259_max_energy_two_drinks", "1d", "tropmax",
@@ -517,16 +569,16 @@ SPECS: dict[str, Spec] = {
              description="dp_A[i]=A[i]+max(dp_A[i-1],dp_B[i-2]); dp_B symmetric; TropMax 2x2 mutual"),
 
         # ── LeetCode 1D arithmetic time-varying counting ──
-        Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",
-             _decode_ways, display_name="Decode Ways (LeetCode 91)",
-             description="f(i)=a(i)f(i-1)+b(i)f(i-2), a,b in {0,1}; arith time-varying, batched 64-step segments"),
+        # Spec("leetcode-91-decode-ways", "leetcode_91_decode_ways", "1d", "arith",
+        #      _decode_ways, display_name="Decode Ways (LeetCode 91)",
+        #      description="f(i)=a(i)f(i-1)+b(i)f(i-2), a,b in {0,1}; arith time-varying, batched 64-step segments"),
         Spec("leetcode-639-decode-ways-ii", "leetcode_639_decode_ways_ii", "1d", "arith",
              _decode_ways, display_name="Decode Ways II (LeetCode 639)",
              description="same 2nd-order TV recurrence as 91 but with '*' multiplicities (coeffs > 1); batched segments"),
 
-        # ── LeetCode 1D ring counting (segmented) ──
-        Spec("leetcode-2466-count-good-strings", "leetcode_2466_count_good_strings", "1d", "arith",
-             _count_good_strings, display_name="Count Ways to Build Good Strings (LeetCode 2466)",
-             description="f(i)=f(i-1)+f(i-3); arith ring, batched 64-step segments"),
+        # # ── LeetCode 1D ring counting (segmented) ──
+        # Spec("leetcode-2466-count-good-strings", "leetcode_2466_count_good_strings", "1d", "arith",
+        #      _count_good_strings, display_name="Count Ways to Build Good Strings (LeetCode 2466)",
+        #      description="f(i)=f(i-1)+f(i-3); arith ring, batched 64-step segments"),
     ]
 }
