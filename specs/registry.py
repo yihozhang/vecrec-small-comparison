@@ -495,11 +495,38 @@ static inline void regex_set_inputs(const int8_t *s, const int8_t *p) { regex_s 
 // Does pattern char pc match string char sc ('.' matches any real char)?
 static inline bool regex_pat_matches(char pc, char sc) { return pc == '.' || pc == sc; }
 
+// Char-domain vector of `lanes` elements. Element type is `char` (not int8_t) because clang's
+// vector compares on ext_vector_type yield char vectors, and there is no implicit conversion
+// between char and signed-char vectors. Compares run in this narrow 8-bit domain; the combined
+// 0/-1 lane mask is widened to vec_type once with __builtin_convertvector.
+template <int lanes>
+struct RegexCharVec {
+    typedef char type __attribute__((ext_vector_type(lanes)));
+    // Unaligned whole-vector load; compiles to one movdqu / ldr q.
+    static inline type loadu(const int8_t *base) {
+        type v;
+        __builtin_memcpy(&v, base, lanes);
+        return v;
+    }
+    // Lane k = p[c0 + k - back], with REGEX_SENTINEL wherever c0 + k - back < 0. Since my_col
+    // steps by `lanes`, only the first vector of each row (c0 == 0) touches negative indices;
+    // every other call is a single in-bounds unaligned load (in-range reads are valid per the
+    // buffer-sizing invariant above). The c0 == 0 case splats the sentinel and overwrites the
+    // upper lanes with the first pattern chars — once per row, off the hot path.
+    static inline type load_pat(const int8_t *p, int c0, int back) {
+        if (__builtin_expect(c0 >= back, 1)) return loadu(p + (c0 - back));
+        type v = (char)REGEX_SENTINEL;  // splat; covers lanes with c < back
+        if (back < lanes) __builtin_memcpy((char *)&v + back, p, lanes - back);
+        return v;
+    }
+};
+
 // M_diag: dp[r-1][c-1] tap, active iff p[c-1] matches s[r-1] ('.'/literal match).
 template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
 struct RegexMatchMask {
     using elt_type = typename ElementType<vec_type>::type;
     static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    using cvec = typename RegexCharVec<lanes>::type;
     static constexpr elt_type ONE = (elt_type)1;   // boolean one (true)
     static constexpr elt_type ZERO = (elt_type)0;  // boolean zero (false)
     const int8_t *__restrict__ s;  // string chars, indexed by (row - 1)
@@ -512,26 +539,22 @@ struct RegexMatchMask {
         char pc = (c >= 1) ? (char)p[c - 1] : REGEX_SENTINEL;
         return regex_pat_matches(pc, sc) ? ONE : ZERO;
     }
-    // Whole-vector form of mask_at: broadcast the row-constant string char, gather the lanes
-    // pattern chars, and blend with branchless vector compares (pc=='.' | pc==sc) -> 1/0.
+    // Whole-vector form of mask_at: one unaligned load of the lane pattern chars (sentinel
+    // shifted in at the row start), branchless compares (pc=='.' | pc==sc), widen -> 1/0.
     inline vec_type mask_vec(int c0) const {
-        const elt_type sc = (my_row >= 1) ? (elt_type)s[my_row - 1] : (elt_type)REGEX_SENTINEL;
-        vec_type pcv;
-        _Pragma("unroll") for (int k = 0; k < lanes; k++) {
-            const int c = c0 + k;
-            pcv[k] = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
-        }
-        const vec_type scv = sc, dotv = (elt_type)'.';
-        return ((vec_type)(pcv == dotv) | (pcv == scv)) & (vec_type)ONE;
+        const char sc = (my_row >= 1) ? (char)s[my_row - 1] : (char)REGEX_SENTINEL;
+        const cvec pcv = RegexCharVec<lanes>::load_pat(p, c0, 1);  // lane k: p[c0+k-1]
+        const cvec scv = sc, dotv = '.';
+        const cvec m = (pcv == dotv) | (pcv == scv);  // 0 / -1 lane masks
+        return __builtin_convertvector(m, vec_type) & (vec_type)ONE;
     }
-
     template <typename Reg_t>
     inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
         vec_type v;
         if constexpr (lanes == 1) {
             v = mask_at(my_col);
         } else {
-            v = mask_vec(my_col);  // whole-vector branchless compares (no per-lane mask_at)
+            v = mask_vec(my_col);  // single load + whole-vector compares (no per-lane gather)
         }
         _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
         my_col += lanes;
@@ -544,6 +567,7 @@ template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
 struct RegexStarMask {
     using elt_type = typename ElementType<vec_type>::type;
     static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    using cvec = typename RegexCharVec<lanes>::type;
     static constexpr elt_type ONE = (elt_type)1;
     static constexpr elt_type ZERO = (elt_type)0;
     const int8_t *__restrict__ p;  // pattern chars, indexed by (col - 1)
@@ -554,15 +578,12 @@ struct RegexStarMask {
         char pc = (c >= 1) ? (char)p[c - 1] : REGEX_SENTINEL;
         return (pc == '*') ? ONE : ZERO;
     }
-    // Whole-vector form of mask_at: gather the lanes pattern chars, compare against '*' -> 1/0.
+    // Whole-vector form of mask_at: one unaligned load, compare against '*', widen -> 1/0.
     inline vec_type mask_vec(int c0) const {
-        vec_type pcv;
-        _Pragma("unroll") for (int k = 0; k < lanes; k++) {
-            const int c = c0 + k;
-            pcv[k] = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
-        }
-        const vec_type starv = (elt_type)'*';
-        return (vec_type)(pcv == starv) & (vec_type)ONE;
+        const cvec pcv = RegexCharVec<lanes>::load_pat(p, c0, 1);  // lane k: p[c0+k-1]
+        const cvec starv = '*';
+        const cvec m = (pcv == starv);
+        return __builtin_convertvector(m, vec_type) & (vec_type)ONE;
     }
     template <typename Reg_t>
     inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
@@ -570,7 +591,7 @@ struct RegexStarMask {
         if constexpr (lanes == 1) {
             v = mask_at(my_col);
         } else {
-            v = mask_vec(my_col);  // whole-vector branchless compares (no per-lane mask_at)
+            v = mask_vec(my_col);  // single load + whole-vector compare (no per-lane gather)
         }
         _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
         my_col += lanes;
@@ -584,6 +605,7 @@ template <typename vec_type, int n_rows, int block_size = 1, int block_row = 0>
 struct RegexStarMatchMask {
     using elt_type = typename ElementType<vec_type>::type;
     static constexpr int lanes = sizeof(vec_type) / sizeof(elt_type);
+    using cvec = typename RegexCharVec<lanes>::type;
     static constexpr elt_type ONE = (elt_type)1;
     static constexpr elt_type ZERO = (elt_type)0;
     const int8_t *__restrict__ s;  // string chars, indexed by (row - 1)
@@ -597,18 +619,16 @@ struct RegexStarMatchMask {
         char pc2 = (c >= 2) ? (char)p[c - 2] : REGEX_SENTINEL;
         return (pc == '*' && regex_pat_matches(pc2, sc)) ? ONE : ZERO;
     }
-    // Whole-vector form of mask_at: gather the lanes p[c-1]/p[c-2] chars and combine with
-    // branchless vector compares: (pc=='*') & (pc2=='.' | pc2==sc) -> 1/0.
+    // Whole-vector form of mask_at: two overlapping unaligned loads give the p[c-1] and
+    // p[c-2] lanes (clang typically folds the second into a palignr/ext of the first), then
+    // branchless compares: (pc=='*') & (pc2=='.' | pc2==sc), widen -> 1/0.
     inline vec_type mask_vec(int c0) const {
-        const elt_type sc = (my_row >= 1) ? (elt_type)s[my_row - 1] : (elt_type)REGEX_SENTINEL;
-        vec_type pcv, pc2v;
-        _Pragma("unroll") for (int k = 0; k < lanes; k++) {
-            const int c = c0 + k;
-            pcv[k]  = (c >= 1) ? (elt_type)p[c - 1] : (elt_type)REGEX_SENTINEL;
-            pc2v[k] = (c >= 2) ? (elt_type)p[c - 2] : (elt_type)REGEX_SENTINEL;
-        }
-        const vec_type starv = (elt_type)'*', scv = sc, dotv = (elt_type)'.';
-        return ((vec_type)(pcv == starv)) & ((vec_type)(pc2v == dotv) | (pc2v == scv)) & (vec_type)ONE;
+        const char sc = (my_row >= 1) ? (char)s[my_row - 1] : (char)REGEX_SENTINEL;
+        const cvec pcv  = RegexCharVec<lanes>::load_pat(p, c0, 1);  // lane k: p[c0+k-1]
+        const cvec pc2v = RegexCharVec<lanes>::load_pat(p, c0, 2);  // lane k: p[c0+k-2]
+        const cvec starv = '*', scv = sc, dotv = '.';
+        const cvec m = (pcv == starv) & ((pc2v == dotv) | (pc2v == scv));
+        return __builtin_convertvector(m, vec_type) & (vec_type)ONE;
     }
     template <typename Reg_t>
     inline __attribute__((always_inline)) void run(Reg_t &reg, int base) {
@@ -616,7 +636,7 @@ struct RegexStarMatchMask {
         if constexpr (lanes == 1) {
             v = mask_at(my_col);
         } else {
-            v = mask_vec(my_col);  // whole-vector branchless compares (no per-lane mask_at)
+            v = mask_vec(my_col);  // two loads + whole-vector compares (no per-lane gather)
         }
         _Pragma("unroll") for (int i = 0; i < n_rows; i++) reg[base + i] = v;
         my_col += lanes;
