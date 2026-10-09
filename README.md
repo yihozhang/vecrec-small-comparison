@@ -224,3 +224,24 @@ generated/ build/ bin/ third_party/   gitignored build products
 * **Hand-edited tables.** During the camera-ready the paper's tables were
   touched up by hand (row order, names). `fig` reproduces that final layout;
   the underlying result files are what the scripts produce.
+* **ksw2 baselines in Table 3 are faster than in the paper on x86.** The
+  paper's x86 ksw2 numbers (~360 / ~580 Melem/s) were measured with the ksw2
+  driver built as `KSW_SSE2_ONLY` (the SSE2 emulation path). The driver was
+  later changed to a fair build (`-march=native`, SSE4.1 fast path), which is
+  what this artifact ships; on x86 ksw2 is then 3-6x faster than in the paper
+  and `ksw2_extf2_sse` (a score-only kernel without traceback, paired here
+  with a score-only VecRec driver `vecrec_nw_tb_so`) can exceed the
+  traceback-timed implementations. The Apple M2 column is unaffected (ksw2
+  runs through sse2neon there).
+* **Table 4's `ecoli-ultralong` row** uses the 500 longest reads of the full
+  Loman/Quick ultra-long run (`ecoli-ultralong-full`, a 5 GB download that is
+  reduced to a 10 MB subsample); the 371-read `ecoli-ultralong-real` subset is
+  ~10x smaller and runs in ~6 s instead of ~60 s.
+
+## 7. Reference run on this artifact's development machine
+
+`results/*/zen4-7985wx.*` are a complete run on an AMD Threadripper PRO 7985WX
+(Zen 4, AVX-512), clang 21, with the pinned VecRec. They are not one of the
+paper's three machines; they are provided as a known-good example of the
+output. Table 3 numbers from this machine agree within a few percent with an
+earlier (July 2026) run of the same harness on the same machine.

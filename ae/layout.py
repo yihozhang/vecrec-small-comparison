@@ -98,7 +98,7 @@ BIO_VECREC_WIDTHS = ("_i16_", "_i32_")
 # ── Table 4: minimap2 end-to-end on ONT workloads ───────────────────────────
 # (paper dataset label, scenario name in end_to_end_baselines/minimap2/scenarios.py)
 E2E_ROWS: list[tuple[str, str]] = [
-    ("ecoli-ultralong", "ablation-noapprox-ecoli-ultralong"),
+    ("ecoli-ultralong", "ablation-noapprox-ecoli-ultralong-full"),
     ("ecoli-strains", "ablation-noapprox-ecoli-strains-mapont"),
     ("pa-strains", "ablation-noapprox-pa-strains"),
 ]

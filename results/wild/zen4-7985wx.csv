@@ -1,0 +1,13 @@
+name,display_name,elements,serial_us,baseline_us,opt_us,opt_vs_serial,opt_vs_baseline,baseline_vs_serial,max_abs_baseline,max_abs_opt,status
+first-order-high-pass,First-Order High Pass Filter,4194304,7263.33,4889.879,660.054,11.0041,7.4083,1.4854,3.576e-07,4.172e-07,PASS
+second-order-high-pass,Second-Order High Pass Filter,4194304,11135.031,8745.415,1103.259,10.0929,7.9269,1.2732,1.788e-06,2.384e-06,PASS
+second-order-low-pass,Second-Order Low Pass Filter,4194304,5661.172,4651.597,1065.832,5.3115,4.3643,1.217,1.454e-05,2.289e-05,PASS
+box-filter-sat,Box Filter (Summed Area Table),4194304,6434.019,16413.672,1017.338,6.3244,16.1339,0.392,0.000515,0.0006528,PASS
+repeated-box-filter,Repeated Box Filter,4194304,39400.873,35988.771,2766.971,14.2397,13.0066,1.0948,9.799e-05,0.05403,PASS
+recursive-gaussian,Recursive Gaussian Filter,4194304,12279.045,12261.578,1291.705,9.5061,9.4926,1.0014,2.98e-07,4.172e-07,PASS
+nonuniform-recursive-filter,Non-uniform Recursive Filter,4194304,6474.032,5052.759,2251.015,2.8761,2.2447,1.2813,2.384e-07,3.576e-07,PASS
+distance-transform,Distance Transform,4194304,6401.191,8157.784,1533.634,4.1739,5.3193,0.7847,0.0,0.0,PASS
+exponential-smoothing,Exponential Smoothing,4194304,5616.477,4594.381,576.668,9.7395,7.9671,1.2225,1.192e-07,1.788e-07,PASS
+double-exp-smoothing,Double Exponential Smoothing,4194304,12846.72,8301.493,1398.578,9.1856,5.9357,1.5475,2.384e-07,2.384e-07,PASS
+welford-variance,Welford Variance,4194304,6538.741,13290.245,1855.975,3.5231,7.1608,0.492,2.98e-08,0.001004,PASS
+continued-fraction,Continued Fraction,4194304,7780.641,6819.798,3843.409,2.0244,1.7744,1.1409,0.0,1.776e-15,PASS

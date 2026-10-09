@@ -1,0 +1,13 @@
+name,display_name,elements,serial_us,baseline_us,opt_us,opt_vs_serial,opt_vs_baseline,baseline_vs_serial,max_abs_baseline,max_abs_opt,status
+leetcode-10-regular-expression-matching,Regular Expression Matching (LeetCode 10),4194304,2651.825,13618.406,1338.197,1.9816,10.1767,0.1947,0.0,0.0,PASS
+leetcode-91-decode-ways,Decode Ways (LeetCode 91),4194304,4313.234,4529.273,2018.792,2.1365,2.2436,0.9523,0.0,0.0,PASS
+leetcode-121-best-time-stock,Best Time to Buy and Sell Stock (LeetCode 121),4194304,1892.811,2150.062,803.973,2.3543,2.6743,0.8804,0.0,0.0,PASS
+leetcode-188-best-time-stock-iv,Best Time to Buy and Sell Stock IV (LeetCode 188),4194304,16991.43,10067.402,1294.56,13.1253,7.7767,1.6878,0.0,0.0,PASS
+leetcode-198-house-robber,House Robber (LeetCode 198),4194304,1745.567,4831.894,1671.254,1.0445,2.8912,0.3613,0.0,0.0,PASS
+leetcode-221-maximal-square,Maximal Square (LeetCode 221),4194304,10116.478,10092.731,746.657,13.549,13.5172,1.0024,0.0,0.0,PASS
+leetcode-304-range-sum-2d,Range Sum Query 2D (LeetCode 304),4194304,1727.108,3983.042,908.202,1.9017,4.3856,0.4336,0.0,0.0,PASS
+leetcode-309-best-time-stock-cooldown,Best Time to Buy and Sell Stock with Cooldown (LeetCode 309),4194304,13074.43,3609.03,3153.555,4.1459,1.1444,3.6227,0.0,0.0,PASS
+leetcode-746-min-cost-climbing-stairs,Min Cost Climbing Stairs (LeetCode 746),4194304,2561.59,18442.862,2009.898,1.2745,9.176,0.1389,0.0,0.0,PASS
+leetcode-1143-lcs,Longest Common Subsequence (LeetCode 1143),4194304,10730.518,5661.4,643.102,16.6856,8.8033,1.8954,0.0,0.0,PASS
+leetcode-1458-max-dot-product,Max Dot Product of Two Subsequences (LeetCode 1458),4194304,10903.72,5587.837,1477.906,7.3778,3.7809,1.9513,0.0,0.0,PASS
+leetcode-3259-max-energy-two-drinks,Maximum Energy Boost From Two Drinks (LeetCode 3259),4194304,12436.881,8851.974,4787.824,2.5976,1.8489,1.405,0.0,0.0,PASS
