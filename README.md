@@ -1,154 +1,226 @@
-# vecrec-small-comparison
+# VecRec — Artifact Evaluation
 
-Benchmarks VecRec-generated kernels against efficient hand-written C++ serial loops,
-for the recurrence kernels listed in `benchmark-status.csv`.
+This repository reproduces the evaluation of the VecRec paper. VecRec itself is
+the Python library + C++ template header pinned as the git submodule
+[`vec-rec/`](vec-rec); everything else here is benchmarking harness.
 
-For each benchmark:
+| Paper table | Group name | What is measured |
+|---|---|---|
+| Table 1 | `wild` | 12 "recurrences in the wild" (signal processing / numerics): VecRec kernel vs a hand-written serial C++ loop vs VecRec with vectorization disabled |
+| Table 2 | `leetcode` | 12 LeetCode dynamic-programming recurrences, same three implementations |
+| Table 3 | `bio` | Edit distance / Needleman–Wunsch / Smith–Waterman / affine gap (2048×2048): VecRec vs parasail, ksw2, seqan3, edlib, WFA2 |
+| Table 4 | `e2e` | minimap2 end-to-end on three real ONT datasets, stock ksw2 vs the VecRec drop-in kernel |
+| Table 5 | `reptile` | Smith–Waterman: REPTILE-style scalar tiling vs VecRec |
 
-1. **VecRec side** — `scripts/gen_kernels.py` drives VecRec to *find the best schedule*
-   for the recurrence and emits a **self-contained** C++ kernel header to
-   `generated/<kernel>.h` (compilable with only `clang++`, no Python at runtime).
-2. **C++ side** — `benchmarks/<kernel>.cpp` times the VecRec kernel against an
-   efficient serial loop, verifies they agree, and reports throughput + speedup,
-   all through the centralized harness `harness/bench.hpp`.
-
-## Layout
-
-```
-pyproject.toml          uv project; path-depends on the vendored ./vec-rec
-harness/bench.hpp       centralized C++ harness: timing, RNG, verify, report, generic VecRec runner
-specs/registry.py       benchmark name -> {kernel_name, build_expr()} (the recurrence specs)
-scripts/gen_kernels.py  drive VecRec: best schedule -> generated/<kernel>.h (+ .meta.json)
-scripts/run_all.py      generate + build + run + aggregate -> results.csv and a table
-benchmarks/<kernel>.cpp one per benchmark: serial baseline + main()
-Makefile                build/run individual benchmarks with clang++
-generated/, build/      git-ignored (regenerated on demand)
-vec-rec/                vendored VecRec checkout (git-ignored)
-```
-
-## Usage
+Two commands drive everything:
 
 ```bash
-uv sync                                              # set up the env (builds vecrec editable)
-
-# Generate kernel header(s) — slow: runs VecRec's schedule search + sweep.
-uv run python scripts/gen_kernels.py --list
-uv run python scripts/gen_kernels.py second-order-low-pass
-uv run python scripts/gen_kernels.py --all
-
-# Build + run one benchmark (requires its generated header).
-make second_order_low_pass
-
-# Generate + build + run everything and aggregate results.
-uv run python scripts/run_all.py
-uv run python scripts/run_all.py --iters 200 --warmup 20
+uv run bench exec <group>     # run the experiments behind one table  (results/<group>/<host>.csv)
+uv run fig <group>            # render that table as LaTeX + Markdown  (figures/<group>.{tex,md})
 ```
 
-Benchmark source files and binaries are named after the kernel (underscored) so they
-match the generated header. Optional CLI flags on each binary: `--rows --cols --iters
---warmup --seed`.
+The paper reports every table on three machines (Intel Skylake i9-9960X, AMD
+Zen 5 Threadripper 9970X, Apple M2). The scripts run on **one** machine and
+produce a one-machine table; `fig` lays several machines' result files side by
+side when given more than one, which is how the paper's tables were assembled.
+The paper's own numbers are transcribed under [`results/paper/`](results/paper)
+so you can render them next to your reproduction (see "Comparing with the paper").
 
-## Semantics notes
+## 1. Requirements
 
-- **1D recurrences** (e.g. second-order low pass): VecRec treats the input as one
-  contiguous stream (`reset_and_next_row` is a no-op for `Signal1D`), so the benchmark
-  is a single long IIR (`--rows 1`) and the serial baseline is a single continuous loop.
-- **2D recurrences** (SAT box filter, distance transform): the recurrence spans the
-  whole grid; the serial baseline computes the full 2D recurrence.
-- The harness rounds dimensions up to multiples of the kernel's `ele_per_iter` /
-  `rows_per_iter` (a valid, slightly larger problem) so the run loop has no partial
-  tiles and never reads/writes out of bounds.
-- Correctness uses an absolute-or-relative tolerance: VecRec's vectorized (dilated)
-  arithmetic reorders float operations, so it diverges slightly from the naive loop.
+* Linux x86-64 or macOS/arm64. A machine with AVX2/AVX-512 (x86) or NEON (Apple
+  Silicon). All experiments are single-threaded.
+* **clang ≥ 17** as `clang++` on `PATH` (VecRec kernels use clang's
+  `ext_vector_type` and elementwise builtins; GCC does not work. seqan3 also
+  needs clang ≥ 17). On macOS use Homebrew LLVM (`brew install llvm`), not Apple's.
+* [`uv`](https://docs.astral.sh/uv/) (Python ≥ 3.10 is fetched by uv if needed).
+* `git`, `make`, `cmake ≥ 3.20`, `curl`, `gunzip`, and zlib development headers
+  (`zlib1g-dev` on Debian/Ubuntu; present by default on macOS) — needed by the
+  third-party aligners in Tables 3–5.
+* Network access the first time Tables 3–5 are set up: the library baselines are
+  cloned from GitHub at pinned versions and the Table 4 datasets are downloaded
+  from NCBI / GitHub (≈ 60 MB).
+* Disk: ≈ 2 GB (third-party clones + builds).
 
-## VecRec tweaks (in the vendored `vec-rec/`, additive)
+No Python packages beyond `numpy` and the vendored `vecrec` are used.
 
-1. `src/vecrec/codegen/generate_kernel.py` — `find_best_schedule_and_emit_header(expr,
-   header_path, kernel_name, baseline_kernel_name=..., ...)`: enumerate candidate schedules,
-   time them, sweep codegen params on the best, and emit a standalone header containing
-   **two** structs — `<kernel_name>` (best schedule) and `<kernel_name>_baseline` (the
-   reference/un-optimized schedule `schedules[0]` with its own swept epi/rpi).
-2. `src/vecrec/codegen/codegen.py` — each generated `struct` now also exposes
-   `static constexpr int ele_per_iter`, `static constexpr int rows_per_iter`, and
-   `using vector_type`, so the C++ harness can drive any kernel generically without a
-   per-kernel calling template.
+## 2. Setup
 
-## Results
+```bash
+git clone --recursive https://github.com/yihozhang/vecrec-small-comparison
+cd vecrec-small-comparison
+uv sync                          # creates .venv with vecrec (editable) + numpy
+uv run bench list                # sanity check: prints groups and the host tag
+```
 
-Every benchmark from `benchmark-status.csv` that is expressible in VecRec is implemented
-(seam carving is excluded — its centered `min` reads a future column of the previous row, a
-negative column lag that `TIKernel2D` cannot represent). Each compares **three**
-implementations (`clang++ -O3 -ffast-math -march=native`, AVX-512 machine; 1D = a 2^22-sample
-stream, 2D = a 2048×2048 grid — both 4,194,304 elements / 16 MiB per array; representative
-numbers — timings vary with machine load):
+Tables 1–2 need nothing else. Tables 3–5 need the C++ baselines and datasets;
+`bench exec` fetches/builds them on demand, or do it explicitly:
 
-- **serial** — efficient C++ serial loop.
-- **VecRec baseline** — VecRec's *un-optimized* reference schedule (`schedules[0]`: no
-  dilation/factorization) with its `ele_per_iter`/`rows_per_iter` swept. Same kernel a
-  programmer would get from VecRec's codegen without the optimizer; a stronger baseline
-  than the naive loop because it still gets register tiling / unrolling.
-- **VecRec optimized** — the best schedule found by the search, with its best epi/rpi.
+```bash
+uv run bench setup bio           # clone + build parasail, ksw2, seqan3, edlib, WFA2  (~10 min)
+uv run bench setup e2e           # download the 3 ONT datasets + build minimap2 (stock & VecRec)
+```
 
-`opt/ser` is the headline speedup; `opt/base` isolates the gain attributable to VecRec's
-*optimization* (dilation/factorization) rather than codegen alone.
+## 3. Running
 
-| benchmark | type | opt/serial | opt/baseline | baseline/serial | status |
-|---|---|---|---|---|---|
-| exponential-smoothing | 1D arith | ~7.8× | ~6.4× | 1.22× | PASS |
-| double-exp-smoothing (Holt's) | 1D arith (2×2 mutual) | ~10.1× | ~6.1× | 1.66× | PASS |
-| box-filter-sat | 2D arith | ~6.2× | ~6.0× | 1.03× | PASS |
-| repeated-box-filter | 2D arith (3-pass SAT) | ~11.7× | ~9.4× | 1.25× | PASS (10% tol) |
-| first-order-high-pass | 1D arith | ~10.6× | ~7.5× | 1.41× | PASS |
-| recursive-gaussian | 1D arith (3rd order) | ~9.8× | ~7.8× | 1.25× | PASS |
-| second-order-high-pass | 1D arith | ~9.9× | ~5.8× | 1.71× | PASS |
-| second-order-low-pass | 1D arith | ~6.3× | ~5.2× | 1.21× | PASS |
-| distance-transform | 2D tropical (min-plus) | ~4.2× | ~5.1× | 0.83× | PASS (exact) |
-| nonuniform-recursive-filter | 1D arith (time-varying) | ~3.0× | ~3.0× | 0.99× | PASS |
-| welford-variance | 1D arith (2 coupled recurrences, TV) | ~1.5× | ~1.2× | 1.31× | PASS |
-| continued-fraction | 1D arith (time-varying, **float64**) | ~2.0× | ~1.8× | 1.13× | PASS |
+```bash
+uv run bench exec wild           # Table 1
+uv run bench exec leetcode       # Table 2
+uv run bench exec bio            # Table 3
+uv run bench exec e2e            # Table 4
+uv run bench exec reptile        # Table 5 (meaningful on Apple Silicon only, see §6)
+uv run bench exec all            # everything
+```
 
-With `-ffast-math` (FMA contraction enabled) and the codegen fix that stops the scalar
-baseline from materializing a wide vector load and immediately splitting it into lanes, the
-VecRec **baseline** beats (or ties) the serial loop on most kernels (`baseline/serial ≳ 1`) —
-i.e. codegen's register tiling/unrolling alone, before any optimization, already wins. The
-main exception (`< 1`) is distance-transform (where `-ffast-math` also lets the compiler
-vectorize the serial min-plus loop); the time-varying kernels sit near `1.0` (their per-sample
-coefficient loads leave little for codegen alone to win). Either way `opt/baseline` isolates a
-further gain from VecRec's
-optimization — up to ~5–9× on the time-invariant filters, ~1.8–3× on the time-varying ones.
-Correctness compares each VecRec kernel against the serial loop with an absolute-or-relative
-tolerance (both built with `-ffast-math`); the baseline is usually numerically closer to serial
-than the optimized kernel. repeated-box-filter uses a 10% bound — cascaded float32 SAT loses
-precision with grid width (optimized error ~5.4e-2 at 2048², baseline ~6e-5). See `results.csv`
-for exact errors.
+Results land in `results/<group>/<host>.csv` (`.json` for `reptile`), where
+`<host>` is `--host NAME`, else `$AE_HOST`, else the hostname. Re-running a
+group overwrites that file; partial results are flushed after every benchmark.
 
-### Time-varying (non-uniform) recurrences
+Useful flags:
 
-The last three benchmarks have coefficients that vary per sample, encoded with VecRec's
-`TVKernel` (each tap is an input *signal* rather than a constant):
+* `--quick` — smoke-test settings (tiny sizes, few iterations). Finishes in
+  minutes and exercises every code path, but the numbers are **not** paper-grade.
+* `--only NAME` — one benchmark (`wild`/`leetcode`: registry name such as
+  `second-order-low-pass`; `bio`: case name such as `affine-gap`;
+  `e2e`: dataset label such as `pa-strains`). Repeatable.
+* `--regen` (`wild`/`leetcode`) — redo the VecRec schedule search instead of
+  reusing `generated/<kernel>.h` from a previous run. The search is the slow
+  part (it compiles and times every candidate schedule); the headers are cached
+  per machine because the best schedule is machine-specific.
+* `--reps N` (`e2e`, `reptile`), `--size N` (`bio`), `--iters/--warmup` (`wild`/`leetcode`).
 
-- **nonuniform-recursive-filter** — `f(x)=a(x)·f(x-1)+b(x)·f(x-2)+g(x)`, a genuine time-varying
-  2nd-order IIR (vec-rec's `second_order_tv`). Coefficients are drawn from `[-0.4, 0.4]` so
-  `|a|+|b|<1` and the filter stays BIBO-stable over the stream.
-- **welford-variance** — Welford's single-pass running (population) variance `var(x)=M2(x)/x`,
-  where the running mean `M(x)=(1-w(x))·M(x-1)+w(x)·a(x)` and the sum of squared deviations
-  `M2(x)=M2(x-1)+(1-w(x))·(a(x)-M(x-1))²` (the usual `delta·delta2` update rewritten via
-  `delta2=(1-w(x))·delta`, so it needs only the *previous* mean). This is **two coupled
-  recurrences** — the first-order TV mean plus a plain prefix sum for `M2` — joined by pointwise
-  ops (a one-step delay on `M`, subtract, square, scale). The weight `w(x)=1/x` (and `(x-1)/x =
-  1-w`) is a pure function of position, so rather than materialize it, it is computed **on the
-  fly** by a `ComputedSignal2D` — a small C++ struct that tracks the stream position and emits a
-  fully-vectorized reciprocal (one `vdivps` per step, no memory traffic for `w`).
-- **continued-fraction** — the Wallis–Euler recurrence `h(x)=a(x)·h(x-1)+b(x)·h(x-2)` with
-  `f(x)=h(x)/h(x-1)`. `h` grows/decays geometrically, so a single long stream overflows within
-  ~100 steps; this is the benchmark that motivated **adding `float64` support to vec-rec**. Even
-  in double a long run overflows, so we run many *independent* 512-step continued fractions —
-  **one CF per harness row** (`row_size=512`). The recurrence state resets at each row boundary
-  (VecRec's recurrence zeroes its history in `reset_and_next_row`; only *input readers* stream
-  continuously), so every row is a fresh CF; a seed input injects `h=1` at each row's first step.
-  It is a real lag-1 recurrence, so VecRec dilates it to vectorize within each 512-step segment
-  (~1.8× over the un-dilated baseline). Correctness excludes each row's first step, where
-  `f=h(0)/h(-1)` divides by the zeroed post-reset history.
+Then render:
 
-Regenerate everything with `uv run python scripts/run_all.py` (use `--regen` to redo the
-schedule search).
+```bash
+uv run fig wild                  # prints a Markdown table, writes figures/wild.{tex,md}
+uv run fig all
+```
+
+`fig` uses every file in `results/<group>/` as one column group (labelled by
+file stem). To choose files and labels explicitly:
+
+```bash
+uv run fig bio --source "Zen 5=results/bio/zen5.csv" --source "Apple M2=results/bio/m2.csv"
+```
+
+### Comparing with the paper
+
+```bash
+uv run fig wild --source "Skylake (paper)=results/paper/wild-skylake.csv" \
+                --source "Zen 5 (paper)=results/paper/wild-zen5.csv" \
+                --source "$(hostname)=results/wild/$(hostname).csv"
+```
+
+`results/paper/` holds the paper's tables re-encoded in the result-file schema
+(`wild-*`, `leetcode-*`, `bio-*` for the three machines, `e2e-paper.csv`,
+`reptile-m2.json`); rendering them alone reproduces the paper's tables verbatim.
+
+## 4. What each group does, and what to expect
+
+### Tables 1–2 (`wild`, `leetcode`)
+
+For each recurrence in [`specs/registry.py`](specs/registry.py):
+
+1. VecRec enumerates candidate schedules for the recurrence, times them, sweeps
+   the codegen parameters (`ele_per_iter`, `rows_per_iter`) on the best ones and
+   writes a self-contained header `generated/<kernel>.h` with two structs: the
+   best schedule and the *baseline* schedule (VecRec codegen with the
+   vectorizing transformations disabled). This is `Vec` and `Base` in the table.
+2. `benchmarks/<kernel>.cpp` (the hand-written serial loop = `Serial`, plus the
+   generic driver in [`harness/bench.hpp`](harness/bench.hpp)) is compiled with
+   `clang++ -O3 -ffast-math -march=native`.
+3. The binary times all three on the same input (2^22 elements: a 2^22-sample
+   stream for 1-D recurrences, a 2048×2048 grid for 2-D ones), checks the two
+   VecRec kernels against the serial loop, and prints a `RESULT,...` line.
+
+Speedup = `Vec` over the faster of `Serial` and `Base`. Expect the same
+ordering and magnitudes as the paper's column for the closest architecture;
+absolute throughputs depend on the machine, and the schedule search itself is
+timing-based, so the chosen schedule (and hence `Vec`) can vary by a few
+percent between runs.
+
+The paper's row names are hard-coded in [`ae/layout.py`](ae/layout.py); e.g. the
+registry's `second-order-low-pass` is printed as "Second-Order Band-Pass Filter"
+as in the paper.
+
+### Table 3 (`bio`)
+
+[`bio_kernel_evals/`](bio_kernel_evals) + [`evals_common/`](evals_common): for
+each of the four recurrences the harness builds every candidate VecRec schedule
+at int8 / int16 / int32, runs every library driver under `bin/` (sources in
+[`baselines/`](baselines), each self-timing one complete alignment *including
+traceback* and reporting its score), and validates every implementation's
+optimal score against a textbook DP in Python. The table takes, per benchmark,
+the fastest *correct* VecRec int16/int32 schedule and the baselines the paper
+lists; the speedup is VecRec over the fastest correct baseline. The two extra
+cases `*-sim65` / `*-sim85` run WFA2 alone on 65% / 85%-identity sequence pairs
+(WFA2's runtime depends on similarity, see the paper's footnote); the 85% row
+reports WFA2's speedup *over VecRec*. Edit distance is expected to lose to edlib.
+
+Int8 schedules are also built and timed (they appear in the CSV) but are never
+selected for the table; they usually fail the score check at 2048×2048 because
+scores exceed the int8 range.
+
+### Table 4 (`e2e`)
+
+[`end_to_end_baselines/minimap2/`](end_to_end_baselines/minimap2): a vendored
+minimap2 v2.28 with small instrumentation hooks, built twice — stock, and with
+`ksw2_extz2_sse`/`ksw2_extd2_sse` replaced by the VecRec affine kernel
+(`generated/ksw2_vecrec_ext.cpp`, generated by `scripts/generate_kernel.py`).
+Each dataset is aligned single-threaded (`-t 1`) with `-x map-ont` and
+banding / approximate-max / z-drop disabled (`-r 100000,100000 -z 1000000,1000000`,
+the scenario `ablation-noapprox-*` in `scenarios.py`); the table reports the
+median wall time of 5 runs and checks both binaries produce the same number of
+alignments.
+
+Datasets (downloaded into `end_to_end_baselines/data/realbench/`, gitignored):
+`ecoli-ultralong` = 371 real ultra-long ONT *E. coli* reads vs K-12 MG1655;
+`ecoli-strains` = *E. coli* O157:H7 chopped into 100 × 50 kbp contigs vs K-12;
+`pa-strains` = *P. aeruginosa* PA14 contigs vs PAO1.
+
+### Table 5 (`reptile`)
+
+[`Reptile/`](Reptile): a REPTILE-style tiled scalar loop nest for
+Smith–Waterman (untiled / row / column / 2-D block tiling, tile sizes 4–512) and
+the VecRec kernel, every configuration validated against the reference score.
+The table reports, per matrix size, the untiled scalar loops, the best scalar
+tiling, and VecRec untiled. The harness also tiles *around* the VecRec kernel
+(the paper's "composing VecRec with Reptile" remark); those rows are in the JSON.
+
+## 5. Layout
+
+```
+ae/                      bench / fig entry points, paper row layouts, table renderers
+specs/registry.py        Table 1-2 recurrence definitions (VecRec expressions)
+benchmarks/*.cpp         Table 1-2 serial baselines + main()      harness/bench.hpp  driver
+Makefile                 builds benchmarks/<kernel>.cpp against generated/<kernel>.h
+bio_kernel_evals/        Table 3 cases (one file per recurrence)   evals_common/  harness
+baselines/               C++ drivers for parasail/ksw2/seqan3/edlib/WFA2 (CMake)
+scripts/setup_baselines.sh, build_baselines.sh     clone (pinned) + build -> bin/
+end_to_end_baselines/    Table 4: vendored minimap2, kernel generator, scenarios, fetch scripts
+Reptile/                 Table 5: tiled-driver generator + sweep
+results/<group>/         raw results per machine; results/paper/ = the paper's numbers
+figures/                 output of `fig`
+vec-rec/                 VecRec (git submodule, pinned)
+generated/ build/ bin/ third_party/   gitignored build products
+```
+
+## 6. Known deviations and caveats
+
+* **Single machine vs three.** Each run gives one column group. The paper's
+  claims are about relative speedups per machine, which is what one machine
+  reproduces.
+* **Table 5 is Apple-Silicon-specific.** The paper's numbers are from the M2.
+  The scripts run on x86 too, but the loop unrolling that makes VecRec's
+  Smith–Waterman kernel fast relies on NEON's 32 vector registers; on x86 the
+  gap between VecRec and the tiled scalar code is much smaller.
+* **Schedule search is stochastic in time.** `wild`/`leetcode`/`bio` pick the
+  fastest schedule by measurement, so a noisy machine can pick a slightly
+  different schedule. Run on an idle machine; `--regen` repeats the search.
+* **Table 4 absolute times** depend on the dataset download being identical
+  (the fetch scripts pin NCBI accessions and a fixed GitHub file) and on
+  single-thread CPU speed; the paper's machine for this table is not one of the
+  three above (see `08-eval.tex`).
+* **Hand-edited tables.** During the camera-ready the paper's tables were
+  touched up by hand (row order, names). `fig` reproduces that final layout;
+  the underlying result files are what the scripts produce.

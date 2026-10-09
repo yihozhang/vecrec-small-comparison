@@ -1,0 +1,3 @@
+[submodule "vec-rec"]
+	path = vec-rec
+	url = https://github.com/yihozhang/vec-rec.git

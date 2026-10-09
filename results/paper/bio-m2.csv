@@ -1,0 +1,26 @@
+display_name,case,rows,cols,seed,elements,impl,kind,work_mode,median_us,gcups,speedup_vs_best,correct,score,note
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,edlib,baseline,traceback,538.2281,,,True,,paper
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:paper,vecrec,traceback,1383.8477,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_16,baseline,traceback,2176.7108,,,True,,paper
+"needleman-wunsch-sim65 (2048x2048, seed=0)",needleman-wunsch-sim65,2048,2048,0,4194304,wfa2_nw,baseline,traceback,1783.2925,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_16,baseline,traceback,3248.3767,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_16,baseline,traceback,4120.5462,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,ksw2_gg2_sse,baseline,traceback,7496.5219,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,ksw2_extf2_sse,baseline,traceback,7499.2026,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,seqan3_nw,baseline,traceback,18558.8673,,,True,,paper
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:paper,vecrec,traceback,1240.2212,,,True,,paper
+"needleman-wunsch-sim85 (2048x2048, seed=0)",needleman-wunsch-sim85,2048,2048,0,4194304,wfa2_nw,baseline,traceback,322.0690,,,True,,paper
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_16,baseline,traceback,1903.2144,,,True,,paper
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_16,baseline,traceback,2639.2550,,,True,,paper
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_16,baseline,traceback,4572.9437,,,True,,paper
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,seqan3_sw,baseline,traceback,21045.1781,,,True,,paper
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:paper,vecrec,traceback,1768.6291,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_16,baseline,traceback,2191.4959,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_16,baseline,traceback,3287.5874,,,True,,paper
+"affine-gap-sim65 (2048x2048, seed=0)",affine-gap-sim65,2048,2048,0,4194304,wfa2_affine,baseline,traceback,2498.0965,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_16,baseline,traceback,4129.8779,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_extd2_sse,baseline,traceback,7484.4825,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_extz2_sse,baseline,traceback,7485.8183,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_gg2_sse,baseline,traceback,7509.9445,,,True,,paper
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:paper,vecrec,traceback,912.6981,,,True,,paper
+"affine-gap-sim85 (2048x2048, seed=0)",affine-gap-sim85,2048,2048,0,4194304,wfa2_affine,baseline,traceback,429.4363,,,True,,paper

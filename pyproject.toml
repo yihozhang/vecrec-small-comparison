@@ -1,18 +1,28 @@
 [project]
-name = "vecrec-small-comparison"
+name = "vecrec-ae"
 version = "0.1.0"
-description = "Benchmark VecRec-generated kernels against efficient C++ serial loops."
+description = "Artifact evaluation for VecRec: recurrence microbenchmarks, LeetCode DPs, bioinformatics kernels, minimap2 end-to-end, and the Reptile comparison."
 requires-python = ">=3.10"
 dependencies = [
     "vecrec",
-    "numpy>=2.2.6",
+    "numpy>=2.2",
 ]
 
-# This project is a workspace driver, not an installable package.
-[tool.uv]
-package = false
+# Push-button entry points:
+#   uv run bench exec <group>   # run the experiments for one table
+#   uv run fig <group>          # render the table from results/<group>/*.csv
+[project.scripts]
+bench = "ae.cli:bench_main"
+fig = "ae.cli:fig_main"
 
-# Use the vendored VecRec checkout as an editable path dependency so the kernel
-# generator (scripts/gen_kernels.py) can import the vecrec library.
+[build-system]
+requires = ["uv_build>=0.8.19,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = ["ae", "specs", "evals_common", "bio_kernel_evals", "Reptile"]
+module-root = ""
+
+# VecRec is pinned as a git submodule at ./vec-rec and installed editable.
 [tool.uv.sources]
 vecrec = { path = "vec-rec", editable = true }

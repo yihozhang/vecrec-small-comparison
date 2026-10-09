@@ -1,0 +1,4 @@
+dataset,scenario,dataset_name,preset,reps,original_ms,vecrec_ms,speedup,original_alns,vecrec_alns
+ecoli-ultralong,ablation-noapprox-ecoli-ultralong,ecoli-ultralong-real,map-ont,,58235,45624,1.2764,,
+ecoli-strains,ablation-noapprox-ecoli-strains-mapont,ecoli-strains-real,map-ont,,5226,4183,1.2493,,
+pa-strains,ablation-noapprox-pa-strains,pa-strains-real,map-ont,,1898,1761,1.0778,,

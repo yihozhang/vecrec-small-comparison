@@ -1,0 +1,11 @@
+# Vendored minimap2 v2.28 source (with VecRec instrumentation + regime asserts)
+# is committed to this repo. The repo-wide .gitignore excludes *.h and *.o, so
+# re-include the C headers here and keep only build products out of git.
+!*.h
+
+# In-tree build artifacts produced by build_minimap2.sh / make (never committed).
+*.o
+*.a
+/minimap2
+/example
+/sdust

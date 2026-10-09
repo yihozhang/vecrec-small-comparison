@@ -1,0 +1,13 @@
+name,display_name,elements,serial_us,baseline_us,opt_us,opt_vs_serial,opt_vs_baseline,baseline_vs_serial,max_abs_baseline,max_abs_opt,status
+leetcode-10-regular-expression-matching,10.~Regular Expression Matching,4194304,3531.748,11326.773,2259.984,1.5627,5.0119,0.3118,,,PAPER
+leetcode-91-decode-ways,91.~Decode Ways,4194304,8313.784,5749.560,2111.085,3.9382,2.7235,1.4460,,,PAPER
+leetcode-121-best-time-stock,121.~Buy/Sell Stock,4194304,2684.011,2729.245,1477.856,1.8162,1.8468,0.9834,,,PAPER
+leetcode-188-best-time-stock-iv,188.~Buy/Sell Stock IV,4194304,10275.120,6068.148,1761.868,5.8319,3.4442,1.6933,,,PAPER
+leetcode-198-house-robber,198.~House Robber,4194304,9393.738,2819.700,2811.761,3.3409,1.0028,3.3315,,,PAPER
+leetcode-221-maximal-square,221.~Maximal Square,4194304,6148.203,5231.763,1590.137,3.8665,3.2901,1.1752,,,PAPER
+leetcode-304-range-sum-2d,304.~Range Sum Query 2D,4194304,2473.640,2010.307,1210.303,2.0438,1.6610,1.2305,,,PAPER
+leetcode-309-best-time-stock-cooldown,309.~Buy/Sell Stock with Cooldown,4194304,7141.672,5735.408,4586.947,1.5570,1.2504,1.2452,,,PAPER
+leetcode-746-min-cost-climbing-stairs,746.~Min Cost Climbing Stairs,4194304,9414.824,4345.528,4345.528,2.1666,1.0000,2.1666,,,PAPER
+leetcode-1143-lcs,1143.~Longest Common Subsequence,4194304,4917.697,5494.961,1309.370,3.7558,4.1966,0.8949,,,PAPER
+leetcode-1458-max-dot-product,1458.~Max Dot Product of Two Subsequences,4194304,3659.951,5342.382,1352.042,2.7070,3.9513,0.6851,,,PAPER
+leetcode-3259-max-energy-two-drinks,3259.~Max Energy Boost From Two Drinks,4194304,13684.515,5351.243,5076.621,2.6956,1.0541,2.5573,,,PAPER

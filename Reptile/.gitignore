@@ -1,0 +1,5 @@
+# Compiled tiled drivers (regenerate with reptile.build_*).
+build/
+
+# Timestamped sweep artifacts are committed selectively; ignore ad-hoc logs.
+results/*.log
