@@ -206,7 +206,7 @@ def _welford_variance() -> SignalExpr:
         wc = SSub(Num(1.0), w)                              # (x-1)/x
         M = Recurse(TVKernel([Num(0.0), wc]), PointwiseMul(w, a))
         delta1 = SSub(a, Convolve(TIKernel.z(), M))          # a(x) - M(x-1)  (M(0)=0)
-        delta2 = SSub(M, a) # a(x) - M(x)
+        delta2 = SSub(a, M)                                  # a(x) - M(x)
         incr = PointwiseMul(delta1, delta2)  # (a(x) - M(x)) * (a(x) - M(x-1))
         M2 = Recurse(TIKernel([0.0, 1.0]), incr)             # M2(x) = M2(x-1) + incr(x)
         return PointwiseMul(w, M2)                           # var(x) = M2(x)/x
