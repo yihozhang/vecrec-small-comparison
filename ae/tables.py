@@ -130,13 +130,15 @@ def _load_bio(path: Path, size: int) -> dict[str, dict[str, _Impl]]:
     return by_case
 
 
-def _best_vecrec(impls: dict[str, _Impl]) -> Optional[_Impl]:
+def _best_vecrec(impls: dict[str, _Impl], widths=layout.BIO_VECREC_WIDTHS) -> Optional[_Impl]:
+    """Fastest *correct* VecRec schedule among the allowed element widths."""
     cands = [v for k, v in impls.items()
-             if k.startswith("vecrec") and v.correct and any(w in k for w in layout.BIO_VECREC_WIDTHS)]
+             if k.startswith("vecrec") and v.correct and any(w in k for w in widths)]
     return min(cands, key=lambda v: v.us) if cands else None
 
 
-def fig_bio(sources: list[tuple[str, Path]], size: int = layout.BIO_SIZE) -> tuple[str, str]:
+def fig_bio(sources: list[tuple[str, Path]], size: int = layout.BIO_SIZE,
+            widths=layout.BIO_VECREC_WIDTHS) -> tuple[str, str]:
     data = [(label, _load_bio(p, size)) for label, p in sources]
     n = len(data)
     cols = "ll|" + "|".join(["rr"] * n)
@@ -172,7 +174,7 @@ def fig_bio(sources: list[tuple[str, Path]], size: int = layout.BIO_SIZE) -> tup
         # VecRec row: speedup over the fastest correct baseline
         cells = []
         for i, (_, by_case) in enumerate(data):
-            v = _best_vecrec(by_case.get(g.case, {}))
+            v = _best_vecrec(by_case.get(g.case, {}), widths)
             b = best_base[i]
             cells += [_f1(v.melem if v else None), _f2(b.us / v.us if (v and b) else None)]
         emit(r"\textbf{VecRec}", cells)
@@ -182,7 +184,7 @@ def fig_bio(sources: list[tuple[str, Path]], size: int = layout.BIO_SIZE) -> tup
             cells = []
             for i, (_, by_case) in enumerate(data):
                 w = by_case.get(case, {}).get(impl)
-                v = _best_vecrec(by_case.get(g.case, {}))
+                v = _best_vecrec(by_case.get(g.case, {}), widths)
                 cells += [_f1(w.melem if w else None), _f2(v.us / w.us if (v and w) else None)]
             emit(r"WFA2 (85\%)\textsuperscript{$\dagger$}", cells)
 

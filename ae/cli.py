@@ -121,6 +121,9 @@ def fig_main(argv: list[str] | None = None) -> int:
     ap.add_argument("--source", action="append", default=[], metavar="LABEL=FILE",
                     help="result file to use as one column group (repeatable; default: every file in results/<group>/)")
     ap.add_argument("--size", type=int, default=2048, help="bio: matrix size to tabulate")
+    ap.add_argument("--vecrec-widths", default="i8,i16,i32", metavar="W,W",
+                    help="bio: element widths the VecRec row may use (default i8,i16,i32 = how the "
+                         "paper's numbers were produced; i16,i32 = the caption's rule)")
     ap.add_argument("--out", type=Path, default=paths.FIGURES, help="output directory (default figures/)")
     args = ap.parse_args(argv)
 
@@ -144,7 +147,8 @@ def fig_main(argv: list[str] | None = None) -> int:
                   file=sys.stderr)
             continue
         if g == "bio":
-            tex, md = tables.fig_bio(sources, size=args.size)
+            widths = tuple(f"_{w.strip()}_" for w in args.vecrec_widths.split(",") if w.strip())
+            tex, md = tables.fig_bio(sources, size=args.size, widths=widths)
         else:
             tex, md = tables.RENDERERS[g](sources)
         (args.out / f"{g}.tex").write_text(tex + "\n")

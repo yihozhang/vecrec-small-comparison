@@ -156,15 +156,19 @@ at int8 / int16 / int32, runs every library driver under `bin/` (sources in
 [`baselines/`](baselines), each self-timing one complete alignment *including
 traceback* and reporting its score), and validates every implementation's
 optimal score against a textbook DP in Python. The table takes, per benchmark,
-the fastest *correct* VecRec int16/int32 schedule and the baselines the paper
-lists; the speedup is VecRec over the fastest correct baseline. The two extra
+the fastest *correct* VecRec schedule of any element width (int8/int16/int32)
+and the baselines the paper lists; the speedup is VecRec over the fastest correct
+baseline. Note the paper's caption says "int16 and int32 variants", but the
+script that produced its numbers took the fastest VecRec schedule of any width,
+and for affine gap that is the int8 kernel (whose score check passes at
+2048x2048); `fig bio --vecrec-widths i16,i32` applies the caption's rule instead,
+which roughly halves the affine-gap VecRec throughput. The two extra
 cases `*-sim65` / `*-sim85` run WFA2 alone on 65% / 85%-identity sequence pairs
 (WFA2's runtime depends on similarity, see the paper's footnote); the 85% row
 reports WFA2's speedup *over VecRec*. Edit distance is expected to lose to edlib.
 
-Int8 schedules are also built and timed (they appear in the CSV) but are never
-selected for the table; they usually fail the score check at 2048×2048 because
-scores exceed the int8 range.
+For NW, SW and edit distance the int8 schedules fail the score check at
+2048×2048 (scores exceed the int8 range) and are therefore never selected.
 
 ### Table 4 (`e2e`)
 

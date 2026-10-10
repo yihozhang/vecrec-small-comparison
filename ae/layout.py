@@ -93,8 +93,14 @@ BIO_GROUPS: list[BioGroup] = [
     ], wfa85=("affine-gap-sim85", "wfa2_affine")),
 ]
 
-# VecRec element widths the paper picks the best of ("int16 and int32 variants").
-BIO_VECREC_WIDTHS = ("_i16_", "_i32_")
+# VecRec element widths the VecRec row may be taken from. The paper's caption says
+# "int16 and int32 variants", but the script that produced the paper's numbers
+# (bio_kernel_evals/make_table.py at the time) took the fastest VecRec schedule
+# of ANY width, and for affine gap that is the int8 kernel (which passes the score
+# check at 2048x2048; for NW/SW/edit distance int8 saturates and fails, so int16
+# wins there either way). `fig bio --vecrec-widths i16,i32` applies the caption's
+# rule instead.
+BIO_VECREC_WIDTHS = ("_i8_", "_i16_", "_i32_")
 
 # ── Table 4: minimap2 end-to-end on ONT workloads ───────────────────────────
 # (paper dataset label, scenario name in end_to_end_baselines/minimap2/scenarios.py)
