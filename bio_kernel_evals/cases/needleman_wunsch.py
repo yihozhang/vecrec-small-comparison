@@ -116,8 +116,11 @@ class NeedlemanWunsch(EvalCase):
             # correctness anchor, not just a timing comparison. Paired with a
             # score-only VecRec driver (O(row), no traceback) so memory
             # footprint and timed span match this baseline's no-CIGAR kernel.
-            CppBaseline("ksw2_extf2_sse", "ksw2_align", "extf2_sse", extra_payload={"band_width": -1}),
-            *vecrec_traceback_baselines(self.kernel_expr(), kind="nw", score_only=True),
+            # NOTE(artifact): both are disabled -- the paper compares full-matrix
+            # + traceback implementations only, and a score-only kernel is not a
+            # like-for-like baseline for VecRec's traceback-timed kernels.
+            # CppBaseline("ksw2_extf2_sse", "ksw2_align", "extf2_sse", extra_payload={"band_width": -1}),
+            # *vecrec_traceback_baselines(self.kernel_expr(), kind="nw", score_only=True),
         ]
 
 

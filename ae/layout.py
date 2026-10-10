@@ -72,7 +72,8 @@ BIO_GROUPS: list[BioGroup] = [
         ("parasail\\_striped", "needleman-wunsch", "parasail_nw_striped_16"),
         ("parasail\\_diag", "needleman-wunsch", "parasail_nw_diag_16"),
         ("ksw2\\_gg2\\_sse", "needleman-wunsch", "ksw2_gg2_sse"),
-        ("ksw2\\_extf2\\_sse", "needleman-wunsch", "ksw2_extf2_sse"),
+        # ksw2_extf2_sse (score-only, no traceback) is deliberately not listed:
+        # every other implementation is timed on a full matrix + traceback.
         ("seqan3", "needleman-wunsch", "seqan3_nw"),
     ], wfa85=("needleman-wunsch-sim85", "wfa2_nw")),
     BioGroup("Smith--Waterman", "smith-waterman", [

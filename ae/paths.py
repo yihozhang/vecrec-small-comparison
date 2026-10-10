@@ -60,3 +60,21 @@ def cpu_model() -> str:
         except (OSError, subprocess.CalledProcessError):
             pass
     return platform.processor() or platform.machine()
+
+
+def merge_csv(path: Path, rows: list[dict], columns: list[str], key: str) -> None:
+    """Write ``rows`` to ``path``, keeping rows of an existing file whose ``key``
+    is not among the new ones (so ``--only X`` refreshes X without discarding
+    the other benchmarks' results)."""
+    import csv
+
+    old: list[dict] = []
+    if path.exists():
+        with open(path, newline="") as f:
+            old = [r for r in csv.DictReader(f) if r.get(key)]
+    new_keys = {r[key] for r in rows}
+    kept = [r for r in old if r[key] not in new_keys]
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(kept + rows)

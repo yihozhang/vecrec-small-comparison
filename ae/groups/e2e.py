@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 from ae.layout import E2E_ROWS
-from ae.paths import ROOT, result_file
+from ae.paths import ROOT, merge_csv, result_file
 
 MM2_DIR = ROOT / "end_to_end_baselines" / "minimap2"
 SCRIPTS = ROOT / "end_to_end_baselines" / "scripts"
@@ -108,10 +108,7 @@ def exec_group(host: str, *, reps: int = 5, rebuild: bool = False,
         rec = time_scenario(mm2run, sc, ds, reps)
         rows.append({"dataset": label, "scenario": sc.name, "dataset_name": ds.name,
                      "preset": sc.preset, "reps": reps, **rec})
-        with open(out, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=COLUMNS)
-            w.writeheader()
-            w.writerows(rows)
+        merge_csv(out, rows, COLUMNS, key="dataset")
     print(f"wrote {out}")
     return out
 

@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 from ae.layout import MICRO_GROUPS
-from ae.paths import BUILD, GENERATED, ROOT, result_file
+from ae.paths import BUILD, GENERATED, ROOT, merge_csv, result_file
 
 COLUMNS = ["name", "display_name", "elements", "serial_us", "baseline_us", "opt_us",
            "opt_vs_serial", "opt_vs_baseline", "baseline_vs_serial",
@@ -100,11 +100,9 @@ def exec_group(group: str, host: str, *, regen: bool = False, iters: int | None 
             print(f"[warn] {name}: no RESULT line (run failed)", file=sys.stderr)
             continue
         rows.append(r)
-        # Flush after every benchmark so partial results survive an interrupt.
-        with open(out, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=COLUMNS)
-            w.writeheader()
-            w.writerows(rows)
+        # Flush after every benchmark so partial results survive an interrupt;
+        # rows of benchmarks not selected by --only are kept.
+        merge_csv(out, rows, COLUMNS, key="name")
 
     print(f"\n{'benchmark':40s} {'serial us':>10s} {'base us':>10s} {'opt us':>10s} "
           f"{'opt/ser':>8s} {'opt/base':>9s} {'status':>7s}")

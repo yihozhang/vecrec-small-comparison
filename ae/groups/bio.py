@@ -78,7 +78,19 @@ def exec_group(host: str, *, size: int = BIO_SIZE, only: list[str] | None = None
 
     selected = [c for c in cases(size) if not only or c.name in only]
     out = result_file("bio", host)
-    with ResultsCsvWriter(str(out)) as writer:
+    tmp = out.with_suffix(".partial.csv")
+    with ResultsCsvWriter(str(tmp)) as writer:
         code = run_cases(selected, on_results=writer.write_case)
+    # Merge into the host file so `--only CASE` refreshes one case only.
+    import csv
+
+    from evals_common.results_csv import CSV_FIELDS
+
+    from ae.paths import merge_csv
+
+    with open(tmp, newline="") as f:
+        rows = list(csv.DictReader(f))
+    merge_csv(out, rows, CSV_FIELDS, key="display_name")
+    tmp.unlink()
     print(f"wrote {out} (harness exit code {code})")
     return out

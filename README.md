@@ -228,11 +228,25 @@ generated/ build/ bin/ third_party/   gitignored build products
   paper's x86 ksw2 numbers (~360 / ~580 Melem/s) were measured with the ksw2
   driver built as `KSW_SSE2_ONLY` (the SSE2 emulation path). The driver was
   later changed to a fair build (`-march=native`, SSE4.1 fast path), which is
-  what this artifact ships; on x86 ksw2 is then 3-6x faster than in the paper
-  and `ksw2_extf2_sse` (a score-only kernel without traceback, paired here
-  with a score-only VecRec driver `vecrec_nw_tb_so`) can exceed the
-  traceback-timed implementations. The Apple M2 column is unaffected (ksw2
-  runs through sse2neon there).
+  what this artifact ships; on x86 ksw2 is then 3-6x faster than in the paper.
+  The paper's `ksw2_extf2_sse` row is not reproduced: in the current harness
+  that kernel is score-only (no traceback), which is not comparable to the
+  traceback-timed implementations in the rest of the table, so it is disabled.
+  The Apple M2 column is unaffected (ksw2 runs through sse2neon there).
+* **Table 4 does not reproduce on every x86 machine.** On the Zen 4 machine
+  used for the reference run in §7 the VecRec drop-in is *slower* than stock
+  ksw2 (0.84-0.90x on all three datasets) although the stock times match the
+  paper's. The cause is the kernel, not the harness: minimap2's gap-fill calls
+  are ~225x225 with maximum scores above the int8 dispatch threshold, so they
+  run VecRec's int16 kernel, and on this CPU that kernel is ~1.4x slower per
+  call than ksw2's int8 difference-encoded `extd2` kernel (isolated
+  `bio_kernel_evals/cases/extension_dual_affine.py` at 256x256: ksw2 27 us,
+  VecRec int16 37 us, VecRec int8 28 us; the e2e per-call phase timers agree).
+  Sweeping the drop-in schedule / vector width (`VECREC_SCHED_2P`,
+  `VECREC_MULT_2P`, `VECREC_MAX_BITS`) does not change this; neither does the
+  compiler (clang 20 vs 21), nor using the pre-merge VecRec revision. The
+  speedups in the paper were measured on an AVX2 (Zen 3) machine where the
+  int16 kernel beats ksw2 at these sizes.
 * **Table 4's `ecoli-ultralong` row** uses the 500 longest reads of the full
   Loman/Quick ultra-long run (`ecoli-ultralong-full`, a 5 GB download that is
   reduced to a 10 MB subsample); the 371-read `ecoli-ultralong-real` subset is
