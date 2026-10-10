@@ -73,6 +73,7 @@ def bench_main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "setup":
+        paths.check_vecrec_pin()
         for g in _expand(args.groups):
             if g == "bio":
                 from ae.groups import bio
@@ -87,6 +88,7 @@ def bench_main(argv: list[str] | None = None) -> int:
                 print(f"[{g}] nothing to set up (only needs clang++ and the vendored vec-rec)")
         return 0
 
+    paths.check_vecrec_pin()
     host = host_tag(args.host)
     for g in _expand(args.groups):
         print(f"\n===== bench exec {g} ({TABLE_OF[g]}) on host '{host}' =====\n", flush=True)

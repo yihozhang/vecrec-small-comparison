@@ -53,6 +53,11 @@ uv sync                          # creates .venv with vecrec (editable) + numpy
 uv run bench list                # sanity check: prints groups and the host tag
 ```
 
+If you cloned without `--recursive`, run `git submodule update --init` first.
+`vec-rec/` must be at the commit this repository pins (`git ls-tree HEAD vec-rec`);
+`bench` refuses to run otherwise, because VecRec's default branch does not yet
+contain the banded-kernel support the Table 3-5 harnesses use.
+
 Tables 1–2 need nothing else. Tables 3–5 need the C++ baselines and datasets;
 `bench exec` fetches/builds them on demand, or do it explicitly:
 

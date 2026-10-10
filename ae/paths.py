@@ -78,3 +78,27 @@ def merge_csv(path: Path, rows: list[dict], columns: list[str], key: str) -> Non
         w = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
         w.writeheader()
         w.writerows(kept + rows)
+
+
+def check_vecrec_pin() -> None:
+    """Abort with a clear message if ``vec-rec/`` is not at the pinned submodule
+    commit (e.g. the repo was cloned without ``--recursive`` and vec-rec was
+    cloned by hand from its default branch, which lacks the kernels the bio /
+    e2e harnesses need)."""
+    import subprocess
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+
+    pinned = git("ls-tree", "HEAD", "vec-rec").split()
+    pinned_sha = pinned[2] if len(pinned) >= 3 else ""
+    actual_sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
+                                cwd=ROOT / "vec-rec").stdout.strip()
+    if not (ROOT / "vec-rec" / "src" / "vecrec").is_dir():
+        raise SystemExit("vec-rec/ is empty: run `git submodule update --init` then `uv sync`")
+    if pinned_sha and actual_sha and pinned_sha != actual_sha:
+        raise SystemExit(
+            f"vec-rec/ is at {actual_sha[:9]} but this artifact pins {pinned_sha[:9]}.\n"
+            "Run `git submodule update --init` (checks out the pinned commit; the "
+            "vecrec install is editable so no `uv sync` is needed), then retry."
+        )
