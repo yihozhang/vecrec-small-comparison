@@ -50,6 +50,14 @@ if [ -n "${ZLIB_DIR:-}" ]; then
     ZLIB_MK_INCLUDES=("INCLUDES=${ZLIB_INC}")
 fi
 
+# ── 2c. Preflight: minimap2 needs zlib.h and -lz ─────────────────────────────
+if ! printf '#include <zlib.h>\nint main(void){return 0;}\n' | "${CC:-cc}" -x c - -o /dev/null ${ZLIB_INC} ${ZLIB_LD} -lz 2>/dev/null; then
+    echo "ERROR: zlib development files not found (zlib.h / libz)." >&2
+    echo "       Debian/Ubuntu: sudo apt install zlib1g-dev   (macOS: included in the SDK)" >&2
+    echo "       or point ZLIB_DIR at a directory containing zlib.h, zconf.h and libz.so/.a" >&2
+    exit 1
+fi
+
 # ── 3. Generate vecrec kernel (arch-aware) ────────────────────────────────────
 # Vector width for schedule selection. Default 256 (epi=32) rather than the
 # native 512 (epi=64): minimap2's extension calls are short near-diagonal
@@ -133,7 +141,7 @@ CPPFLAGS_MK=("CPPFLAGS=$CPP_DEFS")
 echo "Building minimap2-original (clean build)..."
 cd "$MM2"
 make $MAKE_FLAGS clean 2>/dev/null || true
-make $MAKE_FLAGS -j4 "${CFLAGS_MK[@]}" "${CPPFLAGS_MK[@]}" "${ZLIB_MK_INCLUDES[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread" 2>/dev/null
+make $MAKE_FLAGS -j4 "${CFLAGS_MK[@]}" "${CPPFLAGS_MK[@]}" "${ZLIB_MK_INCLUDES[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread"
 cp minimap2 "$REPO/bin/minimap2_original${BIN_SUFFIX}"
 echo "  >> bin/minimap2_original${BIN_SUFFIX}  ✓"
 
@@ -196,7 +204,7 @@ ar r libminimap2.a "$EXTD2_ORIG_OBJ" "$EXTZ2_ORIG_OBJ"
 # Force re-link by removing the binary; add the C++ runtime (new/delete) — its
 # name is arch-dependent (libc++ on macOS, libstdc++ on Linux), see CXXRT above.
 rm -f minimap2
-make $MAKE_FLAGS -j4 minimap2 "${CFLAGS_MK[@]}" "${CPPFLAGS_MK[@]}" "${ZLIB_MK_INCLUDES[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread $CXXRT" 2>/dev/null
+make $MAKE_FLAGS -j4 minimap2 "${CFLAGS_MK[@]}" "${CPPFLAGS_MK[@]}" "${ZLIB_MK_INCLUDES[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread $CXXRT"
 
 cp minimap2 "$REPO/bin/minimap2_vecrec${BIN_SUFFIX}"
 echo "  >> bin/minimap2_vecrec${BIN_SUFFIX}  ✓"
