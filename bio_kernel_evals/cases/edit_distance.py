@@ -64,6 +64,14 @@ class EditDistance(EvalCase):
         "vecrec: TropMin unit-cost; baselines: textbook Levenshtein / edlib"
     )
 
+    def alignment_score(self, query: str, ref: str) -> float:
+        """Unit-cost edit distance of the alignment (mismatch 1, gap 1)."""
+        cost = 0
+        for a, b in zip(query, ref):
+            if a == "-" or b == "-" or a != b:
+                cost += 1
+        return float(cost)
+
     def __init__(self, rows: int = 128, cols: int = 128, seed: int = 0) -> None:
         self.rows = rows
         self.cols = cols

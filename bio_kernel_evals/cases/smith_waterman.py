@@ -29,7 +29,7 @@ from vecrec.util import ElementType
 from evals_common.harness import Baseline, EvalCase
 from evals_common.parasail import parasail_baselines
 
-from ._alignment import alignment_sweep_variants, sequence_inputs, sw_reference
+from ._alignment import MATCH, MISMATCH, alignment_sweep_variants, sequence_inputs, sw_reference
 
 # Linear gap penalty (per gap character). The C++ drivers use the equivalent
 # affine encoding cost(L) = gap_open + L*gap_extend, so gap_open=0, gap_extend=1.
@@ -65,6 +65,16 @@ class SmithWaterman(EvalCase):
     boundary_convention = (
         "vecrec: TropMax local (restart-at-0); baselines: textbook Smith-Waterman"
     )
+
+    def alignment_score(self, query: str, ref: str) -> float:
+        """Linear-gap score: match/mismatch per column, GAP per gap column."""
+        score = 0
+        for a, b in zip(query, ref):
+            if a == "-" or b == "-":
+                score += GAP
+            else:
+                score += MATCH if a == b else MISMATCH
+        return float(score)
 
     def __init__(self, rows: int = 128, cols: int = 128, seed: int = 0) -> None:
         self.rows = rows

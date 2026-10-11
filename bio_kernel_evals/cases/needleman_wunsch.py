@@ -29,7 +29,7 @@ from vecrec.util import ElementType
 from evals_common.harness import Baseline, EvalCase
 from evals_common.parasail import parasail_baselines
 
-from ._alignment import alignment_sweep_variants, nw_reference, sequence_inputs, similar_sequence_inputs
+from ._alignment import MATCH, MISMATCH, alignment_sweep_variants, nw_reference, sequence_inputs, similar_sequence_inputs
 
 GAP = -1
 # SConvolveOp / SRecurseOp for TropMax use INT64_MIN/8 as the out-of-bounds sentinel.
@@ -57,6 +57,16 @@ class NeedlemanWunsch(EvalCase):
     boundary_convention = (
         "vecrec: TropMax global; baselines: textbook Needleman-Wunsch"
     )
+
+    def alignment_score(self, query: str, ref: str) -> float:
+        """Linear-gap score: match/mismatch per column, GAP per gap column."""
+        score = 0
+        for a, b in zip(query, ref):
+            if a == "-" or b == "-":
+                score += GAP
+            else:
+                score += MATCH if a == b else MISMATCH
+        return float(score)
 
     def __init__(self, rows: int = 128, cols: int = 128, seed: int = 0) -> None:
         self.rows = rows

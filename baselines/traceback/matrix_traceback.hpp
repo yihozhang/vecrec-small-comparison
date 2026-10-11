@@ -234,20 +234,40 @@ int affine_traceback_full_inline(
     const char* x, const char* y, int gap_open, int gap_extend, int match, int mismatch,
     char* q_out, char* r_out, char* c_out)
 {
-    const int64_t GO_GE=(int64_t)gap_open+gap_extend, GE=(int64_t)gap_extend;
+    // Traceback of a Gotoh (affine-gap) alignment from the collapsed H matrix
+    // H = max(M, E, F). A gap state is not recoverable from a single H
+    // predecessor (an "extend" step is only valid inside an open gap), but
+    // E[i][j] = max_{k>=1} H[i-k][j] + gap_open + k*gap_extend (and likewise F
+    // along a row), so a gap of length k is identified by scanning k until the
+    // opening cell is found and then emitted whole. The old heuristic that
+    // accepted H[i][j] == H[i-1][j] + gap_extend as a step produced alignments
+    // whose re-computed score was far below the reported optimum.
+    const int64_t GO=(int64_t)gap_open, GE=(int64_t)gap_extend;
     int n = 0, i = rows, j = cols;
+    auto at = [&](int a, int b) -> int64_t { return (int64_t)mat[(size_t)a*stride+b]; };
     while (i > 0 || j > 0) {
-        if (i == 0) { q_out[n]='-'; r_out[n]=y[j-1]; c_out[n]=' '; ++n; --j; }
-        else if (j == 0) { q_out[n]=x[i-1]; r_out[n]='-'; c_out[n]=' '; ++n; --i; }
-        else {
-            const int64_t sub = (x[i-1] == y[j-1]) ? match : mismatch;
-            if ((int64_t)mat[i*stride+j] == (int64_t)mat[(i-1)*stride+(j-1)] + sub) {
-                q_out[n]=x[i-1]; r_out[n]=y[j-1]; c_out[n]=tb_comp_char(x[i-1],y[j-1]); ++n; --i; --j;
-            } else if ((int64_t)mat[i*stride+j] == (int64_t)mat[(i-1)*stride+j] + GO_GE ||
-                       (int64_t)mat[i*stride+j] == (int64_t)mat[(i-1)*stride+j] + GE) {
-                q_out[n]=x[i-1]; r_out[n]='-'; c_out[n]=' '; ++n; --i;
-            } else { q_out[n]='-'; r_out[n]=y[j-1]; c_out[n]=' '; ++n; --j; }
+        if (i == 0) { q_out[n]='-'; r_out[n]=y[j-1]; c_out[n]=' '; ++n; --j; continue; }
+        if (j == 0) { q_out[n]=x[i-1]; r_out[n]='-'; c_out[n]=' '; ++n; --i; continue; }
+        const int64_t h = at(i, j);
+        const int64_t sub = (x[i-1] == y[j-1]) ? match : mismatch;
+        if (h == at(i-1, j-1) + sub) {
+            q_out[n]=x[i-1]; r_out[n]=y[j-1]; c_out[n]=tb_comp_char(x[i-1],y[j-1]); ++n; --i; --j;
+            continue;
         }
+        int k = 0;
+        for (int t = 1; t <= i; ++t) if (h == at(i-t, j) + GO + (int64_t)t*GE) { k = t; break; }
+        if (k > 0) {   // vertical gap of length k (consumes x)
+            for (int t = 0; t < k; ++t) { q_out[n]=x[i-1]; r_out[n]='-'; c_out[n]=' '; ++n; --i; }
+            continue;
+        }
+        for (int t = 1; t <= j; ++t) if (h == at(i, j-t) + GO + (int64_t)t*GE) { k = t; break; }
+        if (k > 0) {   // horizontal gap of length k (consumes y)
+            for (int t = 0; t < k; ++t) { q_out[n]='-'; r_out[n]=y[j-1]; c_out[n]=' '; ++n; --j; }
+            continue;
+        }
+        // No consistent predecessor (e.g. a saturated cell): fall back to one
+        // horizontal step so the traceback always terminates.
+        q_out[n]='-'; r_out[n]=y[j-1]; c_out[n]=' '; ++n; --j;
     }
     q_out[n]=r_out[n]=c_out[n]='\0';
     tb_reverse_inplace(q_out,n); tb_reverse_inplace(r_out,n); tb_reverse_inplace(c_out,n);

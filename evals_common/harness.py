@@ -230,6 +230,14 @@ class EvalCase(ABC):
         """
         return None
 
+    def alignment_score(self, query: str, ref: str) -> Optional[float]:
+        """Score of a gapped alignment (two equal-length strings with '-') under
+        this case's scoring scheme, or None if the case cannot re-score. When
+        implemented, every C++ driver that returns an alignment is also checked
+        for ``alignment_score(alignment) == optimal score``, which catches
+        tracebacks that are not optimal even though the reported score is."""
+        return None
+
     def kernel_expr(self) -> Optional[object]:
         """Return the (unscheduled) vecrec expression for this case's kernel.
 
@@ -463,6 +471,16 @@ def _run_baselines(case: EvalCase) -> list[ImplResult]:
                 float(res.score), expected_score, atol=case.score_atol
             )
 
+        aln_note = ""
+        if res.alignment is not None and expected_score is not None and \
+                getattr(cpp, "check_correctness", True):
+            aln_score = case.alignment_score(res.alignment.query, res.alignment.ref)
+            if aln_score is not None:
+                aln_ok, _ = _score_check(float(aln_score), expected_score, atol=case.score_atol)
+                if not aln_ok:
+                    correct = False
+                    aln_note = f"; alignment re-scores to {aln_score:g} != optimum {expected_score:g}"
+
         align_query = ""
         align_ref = ""
         align_comp = ""
@@ -483,7 +501,7 @@ def _run_baselines(case: EvalCase) -> list[ImplResult]:
                 score=float(res.score),
                 score_delta=score_delta,
                 timing=stats,
-                note="score+alignment",
+                note="score+alignment" + aln_note,
                 boundary_convention="textbook reference (C++ drivers)",
                 align_query=align_query,
                 align_ref=align_ref,

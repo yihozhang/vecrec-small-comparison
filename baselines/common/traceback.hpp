@@ -72,14 +72,14 @@ inline AlignmentTraceback edlib_path_to_traceback(const unsigned char* alignment
                 out.ref.push_back(target[static_cast<std::size_t>(y_pos++)]);
                 append_comp_char(out.comp, out.query.back(), out.ref.back());
                 break;
-            case 1:
-                out.query.push_back('-');
-                out.ref.push_back(target[static_cast<std::size_t>(y_pos++)]);
-                append_comp_char(out.comp, out.query.back(), out.ref.back());
-                break;
-            case 2:
+            case 1:  // EDLIB_EDOP_INSERT: insertion to target = gap in target, consumes query
                 out.query.push_back(query[static_cast<std::size_t>(x_pos++)]);
                 out.ref.push_back('-');
+                append_comp_char(out.comp, out.query.back(), out.ref.back());
+                break;
+            case 2:  // EDLIB_EDOP_DELETE: deletion from target = gap in query, consumes target
+                out.query.push_back('-');
+                out.ref.push_back(target[static_cast<std::size_t>(y_pos++)]);
                 append_comp_char(out.comp, out.query.back(), out.ref.back());
                 break;
             default:
@@ -106,14 +106,14 @@ inline AlignmentTraceback ksw_cigar_to_traceback(const uint32_t* cigar,
                     out.ref.push_back(target[t_pos++]);
                     append_comp_char(out.comp, out.query.back(), out.ref.back());
                     break;
-                case 1:
-                    out.query.push_back('-');
-                    out.ref.push_back(target[t_pos++]);
-                    append_comp_char(out.comp, out.query.back(), out.ref.back());
-                    break;
-                case 2:
+                case 1:  // I: insertion to the reference = consumes query
                     out.query.push_back(query[q_pos++]);
                     out.ref.push_back('-');
+                    append_comp_char(out.comp, out.query.back(), out.ref.back());
+                    break;
+                case 2:  // D: deletion from the reference = consumes target
+                    out.query.push_back('-');
+                    out.ref.push_back(target[t_pos++]);
                     append_comp_char(out.comp, out.query.back(), out.ref.back());
                     break;
                 default:

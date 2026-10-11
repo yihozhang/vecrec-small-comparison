@@ -171,6 +171,21 @@ class AffineGap(EvalCase):
         "baselines: textbook affine global"
     )
 
+    def alignment_score(self, query: str, ref: str) -> float:
+        """Gotoh score: match/mismatch per column, a gap of length L costs GO + L*GE."""
+        score, in_gap = 0, None
+        for a, b in zip(query, ref):
+            if a == "-" or b == "-":
+                kind = "q" if a == "-" else "r"
+                if in_gap != kind:
+                    score += GO
+                    in_gap = kind
+                score += GE
+            else:
+                in_gap = None
+                score += MATCH if a == b else MISMATCH
+        return float(score)
+
     def __init__(self, rows: int = 128, cols: int = 128, seed: int = 0) -> None:
         self.rows = rows
         self.cols = cols
