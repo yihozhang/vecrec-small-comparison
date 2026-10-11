@@ -31,6 +31,17 @@ def missing_binaries() -> list[str]:
     return [b for b in REQUIRED_BINARIES if not (BIN / b).exists()]
 
 
+def stale_binaries() -> bool:
+    """True if any driver source under baselines/ is newer than a built driver,
+    e.g. after `git pull` changed the shared traceback headers."""
+    built = [(BIN / b).stat().st_mtime for b in REQUIRED_BINARIES if (BIN / b).exists()]
+    if not built:
+        return False
+    newest_src = max((p.stat().st_mtime for p in (ROOT / "baselines").rglob("*")
+                      if p.is_file()), default=0.0)
+    return newest_src > min(built)
+
+
 def setup() -> None:
     """Clone (pinned refs) and build the C++ baseline libraries."""
     libs = [lib for lib in REQUIRED_LIBS if not (THIRD_PARTY / lib).is_dir()]
@@ -74,6 +85,9 @@ def exec_group(host: str, *, size: int = BIO_SIZE, only: list[str] | None = None
 
     if missing_binaries():
         print(f"[bio] missing drivers {missing_binaries()}; running setup first", flush=True)
+        setup()
+    elif stale_binaries():
+        print("[bio] baselines/ changed since the drivers were built; rebuilding them first", flush=True)
         setup()
 
     selected = [c for c in cases(size) if not only or c.name in only]
