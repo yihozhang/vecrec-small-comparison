@@ -94,6 +94,12 @@ Useful flags:
   per machine because the best schedule is machine-specific.
 * `--reps N` (`e2e`, `reptile`), `--size N` (`bio`), `--iters/--warmup` (`wild`/`leetcode`).
 
+To start over, `uv run bench clean <group>` deletes what that group rebuilds on
+demand (kernel headers and binaries for `wild`/`leetcode`, which forces a new
+schedule search; library drivers for `bio`; the minimap2 binaries and generated
+kernel for `e2e`; `Reptile/build/`). `--deep` also removes `third_party/` and the
+downloaded datasets. Result files under `results/` are never touched.
+
 Then render:
 
 ```bash

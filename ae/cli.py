@@ -40,6 +40,62 @@ def _expand(groups: list[str]) -> list[str]:
 
 # ── bench ────────────────────────────────────────────────────────────────────
 
+def _rm(path: Path) -> None:
+    import shutil
+
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+        print(f"  removed {path.relative_to(paths.ROOT)}/")
+    elif path.exists() or path.is_symlink():
+        path.unlink()
+        print(f"  removed {path.relative_to(paths.ROOT)}")
+
+
+def _clean(group: str, deep: bool = False) -> None:
+    """Delete what `bench exec <group>` rebuilds on demand.
+
+    wild/leetcode: generated/ kernel headers + build/ binaries (forces a new
+    schedule search).  bio: bin/ drivers, the CMake tree, cached VecRec driver
+    binaries.  e2e: the two minimap2 binaries, the generated drop-in kernel
+    and minimap2's object files.  reptile: Reptile/build/.  --deep also removes
+    third_party/ and the downloaded datasets.
+    """
+    root = paths.ROOT
+    print(f"[clean] {group}")
+    if group in ("wild", "leetcode"):
+        from ae.layout import MICRO_GROUPS
+        from specs.registry import SPECS
+
+        for _, name in MICRO_GROUPS[group]:
+            k = SPECS[name].kernel_name
+            for p in (paths.GENERATED / f"{k}.h", paths.GENERATED / f"{k}.meta.json", paths.BUILD / k):
+                _rm(p)
+    elif group == "bio":
+        from ae.groups.bio import REQUIRED_BINARIES
+
+        for b in REQUIRED_BINARIES:
+            _rm(paths.BIN / b)
+        for p in list(paths.BIN.glob("vecrec_*")) + list(paths.BIN.glob("reptile_*")):
+            _rm(p)
+        _rm(root / "build" / "baselines")
+        if deep:
+            _rm(paths.THIRD_PARTY)
+    elif group == "e2e":
+        import subprocess
+
+        for p in (paths.BIN / "minimap2_original", paths.BIN / "minimap2_vecrec", paths.BIN / ".mm2_build_defines"):
+            _rm(p)
+        _rm(root / "end_to_end_baselines" / "minimap2" / "generated")
+        mm2 = root / "end_to_end_baselines" / "minimap2" / "minimap2"
+        subprocess.run(["make", "clean"], cwd=mm2, capture_output=True)
+        print(f"  make clean in {mm2.relative_to(root)}/")
+        if deep:
+            _rm(root / "end_to_end_baselines" / "data" / "realbench")
+    elif group == "reptile":
+        _rm(root / "Reptile" / "build")
+        for p in paths.BIN.glob("reptile_*"):
+            _rm(p)
+
 def bench_main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bench", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -49,6 +105,11 @@ def bench_main(argv: list[str] | None = None) -> int:
 
     sp = sub.add_parser("setup", help="install third-party baselines / datasets for groups")
     sp.add_argument("groups", nargs="+")
+
+    cl = sub.add_parser("clean", help="delete build products for groups (keeps third_party/ and datasets)")
+    cl.add_argument("groups", nargs="+")
+    cl.add_argument("--deep", action="store_true",
+                    help="also delete third_party/ clones and downloaded datasets (re-fetched on next setup)")
 
     ex = sub.add_parser("exec", help="run the experiments for groups")
     ex.add_argument("groups", nargs="+")
@@ -89,6 +150,11 @@ def bench_main(argv: list[str] | None = None) -> int:
         return 0
 
     paths.check_vecrec_pin()
+    if args.cmd == "clean":
+        for g in _expand(args.groups):
+            _clean(g, deep=args.deep)
+        return 0
+
     host = host_tag(args.host)
     for g in _expand(args.groups):
         print(f"\n===== bench exec {g} ({TABLE_OF[g]}) on host '{host}' =====\n", flush=True)
