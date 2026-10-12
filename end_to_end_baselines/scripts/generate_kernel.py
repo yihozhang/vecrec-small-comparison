@@ -15,13 +15,16 @@ Produces (in end_to_end_baselines/minimap2/generated/):
                               is deliberately NOT defined here so minimap2 keeps
                               ksw2's original splice kernel.
 
-The schedule_index (default 8) selects from candidate schedules ordered by
-increasing vectorisation. Override with sys.argv[1].
+By default, run VecRec's schedule and codegen search for each affine/element-width
+variant. A positional schedule_index or VECREC_SCHED_* environment variable
+explicitly bypasses search for that variant.
 """
 from __future__ import annotations
 
 import contextlib
 import io
+import json
+import math
 import os
 import pathlib
 import re
@@ -32,12 +35,15 @@ import tempfile
 _REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO))
 
-from vecrec.codegen import CodeGen, instantiate_kernels
+from vecrec.codegen import (
+    CodeGen, MAX_SWEEP_SCHEDULES, generate_and_run_benchmark,
+    instantiate_kernels, sweep_codegen_setup,
+)
 from vecrec.optimize import get_candidate_schedules
 
-# ── element width (I16 default; I8 experimental) ─────────────────────────────
-# VECREC_ELEMENT_WIDTH=8 switches both kernels to ElementType.I8. This is
-# EXPERIMENTAL and schedule-sensitive: VecRec's dilated F-gap "prefix-scan"
+# ── legacy element-width default for direct helper calls ──────────────────────
+# The generated minimap2 wrapper always includes both I8 and I16 kernels.
+# I8 is schedule-sensitive: VecRec's dilated F-gap "prefix-scan"
 # tower holds `multiplier * gap_penalty` in the SAME element type as the score
 # itself (a compile-time literal, or -- after patch_runtime_gaps -- a runtime
 # `static_cast<elt_type>(mult * param)`). At I8 the multiplier grows with the
@@ -46,9 +52,8 @@ from vecrec.optimize import get_candidate_schedules
 # exceeds 127 will either fail to compile (literal narrowing) or silently
 # wrap (runtime cast) -- NOT saturate. For minimap2 map-ont's default 2-piece
 # gap (q2+e2=25), schedule indices >= 12 overflow (mult >= 8 -> 200 > 127);
-# indices 0-11 stay safe (mult <= 4 -> 100 <= 127). Callers experimenting with
-# I8 should pass a low VECREC_SCHED_2P explicitly rather than relying on the
-# I16-tuned production default.
+# indices 0-11 are the search range for I8. A runtime guard below also checks
+# the actual generated tap multipliers, which can grow with codegen's epi_mult.
 ELEMENT_WIDTH = int(os.environ.get("VECREC_ELEMENT_WIDTH", "16"))
 if ELEMENT_WIDTH not in (8, 16):
     raise ValueError(f"VECREC_ELEMENT_WIDTH must be 8 or 16, got {ELEMENT_WIDTH}")
@@ -79,7 +84,7 @@ _SENTINEL_TO_PARAM = {
 # recurrence minimap2 runs (ksw_extd2_sse). The penalties are SENTINELS here;
 # they are rewritten to runtime ctor params by patch_runtime_gaps() below.
 #   gap(L) = min(q + L*e,  q2 + L*e2)
-def _build_minimap2_dual_affine_expr(elt=None):
+def _build_minimap2_dual_affine_expr(elt=None, gaps=None):
     from vecrec.expr import (
         Convolve, Impulse, Ith, Num, PointwiseMul,
         Recurse, RepeaterVec, RVec2D, SAdd, SignalVector, SignalVectorExpr,
@@ -87,7 +92,7 @@ def _build_minimap2_dual_affine_expr(elt=None):
     )
     from vecrec.util import ElementType
 
-    GE = GE_S; GO_GE = GO_GE_S; GE2 = GE2_S; GO2_GE2 = GO2_GE2_S
+    GE, GO_GE, GE2, GO2_GE2 = gaps or (GE_S, GO_GE_S, GE2_S, GO2_GE2_S)
 
     if elt is None:
         elt = ElementType.I8 if ELEMENT_WIDTH == 8 else ElementType.I16
@@ -133,7 +138,7 @@ def _build_minimap2_dual_affine_expr(elt=None):
 # ksw_extz2_sse (minimap2's 1-piece entry, taken when q==q2 && e==e2). Only ONE
 # gap-open/extend pair, so a single E and single F gap state — no E2/F2 work.
 #   gap(L) = q + L*e
-def _build_minimap2_single_affine_expr(elt=None):
+def _build_minimap2_single_affine_expr(elt=None, gaps=None):
     from vecrec.expr import (
         Convolve, Impulse, Ith, Num, PointwiseMul,
         Recurse, RepeaterVec, RVec2D, SAdd, SignalVector, SignalVectorExpr,
@@ -141,7 +146,7 @@ def _build_minimap2_single_affine_expr(elt=None):
     )
     from vecrec.util import ElementType
 
-    GE = GE_S; GO_GE = GO_GE_S
+    GE, GO_GE = gaps or (GE_S, GO_GE_S)
 
     if elt is None:
         elt = ElementType.I8 if ELEMENT_WIDTH == 8 else ElementType.I16
@@ -369,34 +374,138 @@ except OSError:
 # Allow overriding the vector width (controls schedule epi) for experiments.
 max_bits = int(os.environ.get("VECREC_MAX_BITS", max_bits))
 
-# ── schedule selection: SMALL-MATRIX-OPTIMIZED drop-in ────────────────────────
-# The production drop-in is tuned for the small DP matrices minimap2's seed
-# extension actually produces. The fastest schedules at n=128-256 (from the
-# fair ksw2 isolated sweep, bio_kernel_evals/cases/extension_*_affine.py) are,
-# in terms of (candidate-schedule index, ele_per_iter_multiple):
-#   2-piece dual : schedules[13] @ mult=2   (harness label k13)
-#   1-piece Gotoh: schedules[9]  @ mult=2   (harness label k9)
-# These beat the old fixed (idx=8, mult=1) pick by a wide margin on small
-# matrices. Override any of them via env vars for experiments; a single legacy
-# positional arg still sets BOTH schedule indices (kept for back-compat).
+# ── schedule selection ────────────────────────────────────────────────────────
+# Search on a 256x256 matrix, close to minimap2's typical extension size. The
+# search is VecRec's standard two-stage path: benchmark all candidate schedules,
+# then sweep codegen settings for the top candidates with correctness checks.
+# Use minimap2's map-ont gap penalties while searching: the prime sentinels
+# above exist only to identify literals for the runtime-gap patch and would
+# overflow I8 in optimized schedules. Schedule indices are independent of the
+# coefficient values; the selected index is regenerated with sentinels below.
 _legacy_idx = int(sys.argv[1]) if len(sys.argv) > 1 else None
-SCHED_2P = int(os.environ.get("VECREC_SCHED_2P", _legacy_idx if _legacy_idx is not None else 13))
-MULT_2P  = int(os.environ.get("VECREC_MULT_2P", 2))
-SCHED_1P = int(os.environ.get("VECREC_SCHED_1P", _legacy_idx if _legacy_idx is not None else 9))
-MULT_1P  = int(os.environ.get("VECREC_MULT_1P", 2))
-# I8 kernels: the dilation multiplier * gap magnitude must stay within int8, so
-# cap the schedule index at 11 (mult <= 4 -> 4*25 = 100 <= 127). Override explicitly.
-SCHED_2P_I8 = int(os.environ.get("VECREC_SCHED_2P_I8", min(SCHED_2P, 11)))
-SCHED_1P_I8 = int(os.environ.get("VECREC_SCHED_1P_I8", min(SCHED_1P, 11)))
+TUNE_SIZE = int(os.environ.get("VECREC_TUNE_SIZE", "256"))
+TUNE_ITERS = int(os.environ.get("VECREC_TUNE_ITERS", "100"))
+if TUNE_SIZE <= 0 or TUNE_ITERS <= 0:
+    raise ValueError("VECREC_TUNE_SIZE and VECREC_TUNE_ITERS must be positive")
+TUNE_GAPS_2P = (-2, -6, -1, -25)  # options.c: e, q+e, e2, q2+e2
+TUNE_GAPS_1P = TUNE_GAPS_2P[:2]
+
+
+def _search_schedule(expr, cap):
+    """Mirror find_best_schedule_and_emit_header with minimap2-sized inputs.
+
+    The pinned helper fixes its benchmark at 1024 columns and does not expose
+    an I8-safe candidate cap; both stages here call its public search primitives.
+    """
+    schedules = get_candidate_schedules(expr, max_bits)
+    total_candidates = len(schedules)
+    if cap is not None:
+        schedules = schedules[:cap + 1]
+    if not schedules:
+        raise RuntimeError("VecRec generated no candidate schedules")
+    bench = dict(row_size=TUNE_SIZE, input_size=TUNE_SIZE * TUNE_SIZE,
+                 warmup_iterations=10, benchmark_iterations=TUNE_ITERS)
+    raw = generate_and_run_benchmark(
+        CodeGen(), schedules, include_correctness_check=True, **bench
+    )
+    output = raw["output"]
+    timing_keys = [key for key in output if key != "validation"]
+    n_top = min(len(schedules), max(2, math.ceil(0.1 * len(schedules))))
+    top_indices = [int(key[1:]) for key in
+                   sorted(timing_keys, key=lambda key: output[key], reverse=True)[:n_top]]
+    if 0 not in top_indices:
+        top_indices.append(0)
+    non_baseline = [idx for idx in top_indices if idx != 0]
+    if len(non_baseline) > MAX_SWEEP_SCHEDULES:
+        kept = set(non_baseline[:MAX_SWEEP_SCHEDULES]) | {0}
+        top_indices = [idx for idx in top_indices if idx in kept]
+    sweep = sweep_codegen_setup([schedules[idx] for idx in top_indices], **bench)
+    best_local, best = max(enumerate(sweep),
+                           key=lambda pair: pair[1]["best_throughput_mbs"])
+    if best["best_throughput_mbs"] <= 0:
+        raise RuntimeError("VecRec schedule search found no valid candidate")
+    return {"best_schedule_index": top_indices[best_local],
+            "best_ele_per_iter_multiple": best["best_ele_per_iter_multiple"],
+            "best_rows_per_iter": best["best_rows_per_iter"],
+            "best_throughput_mbs": best["best_throughput_mbs"],
+            "num_schedules": len(schedules), "total_candidates": total_candidates}
+
+
+def _select_schedule(label, builder, elt, pieces, width):
+    prefix = f"VECREC_SCHED_{pieces}P"
+    specific = f"{prefix}_I8" if width == 8 else prefix
+    specific_override = os.environ.get(specific)
+    override = specific_override
+    if override is None and width == 8:
+        override = os.environ.get(prefix)
+    if override is None and _legacy_idx is not None:
+        override = str(_legacy_idx)
+    mult_override = os.environ.get(f"VECREC_MULT_{pieces}P")
+    # Limit I8 to the previously validated schedule range; the runtime guard
+    # below checks actual tap scaling for the selected codegen setting.
+    cap = 11 if width == 8 else None
+    if override is not None:
+        idx = int(override)
+        if idx < 0 or (cap is not None and specific_override is not None and idx > cap):
+            raise ValueError(f"{label}: schedule index {idx} is outside the safe range")
+        if cap is not None:
+            idx = min(idx, cap)
+        # Keep the legacy positional/general override behavior: an index beyond
+        # a variant's candidate list uses its last candidate.
+        available = len(get_candidate_schedules(builder(elt), max_bits))
+        if idx >= available:
+            print(f"[schedule] {label}: k{idx} exceeds {available} candidates; "
+                  f"using k{available - 1}", flush=True)
+            idx = available - 1
+        mult = int(mult_override) if mult_override is not None else 2
+        rpi = int(os.environ.get(f"VECREC_RPI_{pieces}P", "1"))
+        print(f"[schedule] {label}: explicit k{idx}, epi_mult={mult}, rpi={rpi}", flush=True)
+        return idx, mult, rpi, {"selection": "explicit", "schedule_index": idx,
+                                "ele_per_iter_multiple": mult, "rows_per_iter": rpi}
+
+    gaps = TUNE_GAPS_2P if pieces == 2 else TUNE_GAPS_1P
+    print(f"[schedule] {label}: searching VecRec candidates at {TUNE_SIZE}x{TUNE_SIZE}", flush=True)
+    result = _search_schedule(builder(elt, gaps=gaps), cap)
+    final_candidates = len(get_candidate_schedules(builder(elt), max_bits))
+    if final_candidates != result["total_candidates"]:
+        raise RuntimeError(f"{label}: tuning and runtime-gap expressions have "
+                           "different schedule counts")
+    idx = result["best_schedule_index"]
+    mult = int(mult_override) if mult_override is not None else result["best_ele_per_iter_multiple"]
+    rpi = int(os.environ.get(f"VECREC_RPI_{pieces}P", result["best_rows_per_iter"]))
+    print(f"[schedule] {label}: k{idx}, epi_mult={mult}, "
+          f"rpi={rpi}, "
+          f"{result['best_throughput_mbs']:.1f} MB/s "
+          f"({result['num_schedules']} candidates)", flush=True)
+    return idx, mult, rpi, {"selection": "searched", "schedule_index": idx,
+                       "ele_per_iter_multiple": mult,
+                       "rows_per_iter": rpi,
+                       "throughput_mbs": result["best_throughput_mbs"],
+                       "num_schedules": result["num_schedules"],
+                       "tune_gaps": gaps,
+                       "tune_size": TUNE_SIZE, "tune_iterations": TUNE_ITERS}
+
+
+SELECTIONS = {}
+for _label, _builder, _elt, _pieces, _width in (
+    ("2p_i16", _build_minimap2_dual_affine_expr, ElementType.I16, 2, 16),
+    ("2p_i8", _build_minimap2_dual_affine_expr, ElementType.I8, 2, 8),
+    ("1p_i16", _build_minimap2_single_affine_expr, ElementType.I16, 1, 16),
+    ("1p_i8", _build_minimap2_single_affine_expr, ElementType.I8, 1, 8),
+):
+    SELECTIONS[_label] = _select_schedule(_label, _builder, _elt, _pieces, _width)
 
 BAND_WIDTH = 500   # codegen ring-buffer sizing only; the band is runtime (arg w)
 
 
-def _codegen(expr, name, sched_idx, mult):
-    """Pick schedule `sched_idx` (clamped) at `mult` ele-per-iter for `expr`."""
+def _codegen(expr, name, sched_idx, mult, rpi):
+    """Generate the searched schedule at its selected codegen setting."""
     schedules = get_candidate_schedules(expr, max_bits)
-    idx = min(sched_idx, len(schedules) - 1)
-    cg = CodeGen(band_width=BAND_WIDTH, ele_per_iter_multiple=mult)
+    if not 0 <= sched_idx < len(schedules):
+        raise RuntimeError(f"{name}: schedule k{sched_idx} missing from {len(schedules)} candidates")
+    idx = sched_idx
+    cg = CodeGen(band_width=BAND_WIDTH, ele_per_iter_multiple=mult,
+                 rows_per_iter=rpi)
     with contextlib.redirect_stdout(io.StringIO()):
         code = cg.generate(schedules[idx], name)
     return code, idx
@@ -408,15 +517,15 @@ def _codegen(expr, name, sched_idx, mult):
 # provably-small extensions; I16 is the always-correct fallback.
 _KSPEC = [
     # struct,        builder,                             elt,             sched,       mult,    pieces, ctype,     required
-    ("k_vr_2p_i16", _build_minimap2_dual_affine_expr,   ElementType.I16, SCHED_2P,    MULT_2P, 2, "int16_t", {"ge", "go_ge", "ge2", "go2_ge2"}),
-    ("k_vr_2p_i8",  _build_minimap2_dual_affine_expr,   ElementType.I8,  SCHED_2P_I8, MULT_2P, 2, "int8_t",  {"ge", "go_ge", "ge2", "go2_ge2"}),
-    ("k_vr_1p_i16", _build_minimap2_single_affine_expr, ElementType.I16, SCHED_1P,    MULT_1P, 1, "int16_t", {"ge", "go_ge"}),
-    ("k_vr_1p_i8",  _build_minimap2_single_affine_expr, ElementType.I8,  SCHED_1P_I8, MULT_1P, 1, "int8_t",  {"ge", "go_ge"}),
+    ("k_vr_2p_i16", _build_minimap2_dual_affine_expr,   ElementType.I16, *SELECTIONS["2p_i16"][:3], 2, "int16_t", {"ge", "go_ge", "ge2", "go2_ge2"}),
+    ("k_vr_2p_i8",  _build_minimap2_dual_affine_expr,   ElementType.I8,  *SELECTIONS["2p_i8"][:3],  2, "int8_t",  {"ge", "go_ge", "ge2", "go2_ge2"}),
+    ("k_vr_1p_i16", _build_minimap2_single_affine_expr, ElementType.I16, *SELECTIONS["1p_i16"][:3], 1, "int16_t", {"ge", "go_ge"}),
+    ("k_vr_1p_i8",  _build_minimap2_single_affine_expr, ElementType.I8,  *SELECTIONS["1p_i8"][:3],  1, "int8_t",  {"ge", "go_ge"}),
 ]
 
 KMETA: dict = {}   # struct name -> dict(code, sched, epi, rpi, ctype, pieces, required)
-for (kname, builder, elt, sidx, mult, pieces, ctype, required) in _KSPEC:
-    _code, _used_idx = _codegen(builder(elt), kname, sidx, mult)
+for (kname, builder, elt, sidx, mult, rpi, pieces, ctype, required) in _KSPEC:
+    _code, _used_idx = _codegen(builder(elt), kname, sidx, mult, rpi)
     KMETA[kname] = dict(code=_code, sched=_used_idx, epi=_code.element_per_iter,
                         rpi=_code.rows_per_iter, ctype=ctype, pieces=pieces,
                         required=required)
@@ -454,6 +563,21 @@ hdr = hdr.replace(f"struct {_first} {{",
                   _RUNTIME_TAP_KERNEL + f"\nstruct {_first} {{", 1)
 for _kname, _m in KMETA.items():
     hdr = patch_runtime_gaps(hdr, _m["epi"], _kname, _m["required"], _m["ctype"])
+
+
+def _gap_multipliers(header: str, kernel_name: str, ctype: str,
+                     params: set[str]) -> dict[str, int]:
+    """Read the largest runtime scaling factor of each gap tap in a kernel."""
+    start = header.index(f"struct {kernel_name} {{")
+    end = header.index(f"using {kernel_name}_vector_type", start)
+    body = header[start:end]
+    return {param: max([1] + [int(v) for v in re.findall(
+        rf"static_cast<{re.escape(ctype)}>\((\d+) \* {param}\)", body
+    )]) for param in params}
+
+
+for _kname, _m in KMETA.items():
+    _m["gap_multipliers"] = _gap_multipliers(hdr, _kname, _m["ctype"], _m["required"])
 
 pathlib.Path(hdr_path).write_text(hdr)
 
@@ -875,7 +999,11 @@ extern "C" void ksw_extz2_sse(void *km,
         return;
     }
     long _ub = _minlen * _mmax + (end_bonus > 0 ? end_bonus : 0);
-    const bool _use_i8 = (_ub <= VR_I8_MAX) && (_worst_mag <= VR_I8_SAFE_MAG);
+    // A searched schedule may scale gap taps inside an int8 register. Check the
+    // generated factors before choosing it, since narrowing casts would wrap.
+    const bool _use_i8 = (_ub <= VR_I8_MAX) && (_worst_mag <= VR_I8_SAFE_MAG)
+        && (long)e * @I8_1P_GE_MULT@ <= 127
+        && ((long)q + e) * @I8_1P_GO_GE_MULT@ <= 127;
     // 1-piece affine entry (q==q2 && e==e2). Feed piece 2 == piece 1; the DEDICATED
     // 1-piece core (H,E1,F1 only — no E2/F2 work) is used by default. VR_FORCE_2P
     // routes through the 2-piece core instead, to A/B the dedicated-kernel win.
@@ -925,7 +1053,12 @@ extern "C" void ksw_extd2_sse(void *km,
         return;
     }
     long _ub = _minlen * _mmax + (end_bonus > 0 ? end_bonus : 0);
-    if (_ub <= VR_I8_MAX && _worst_mag <= VR_I8_SAFE_MAG)
+    const bool _use_i8 = (_ub <= VR_I8_MAX) && (_worst_mag <= VR_I8_SAFE_MAG)
+        && (long)e * @I8_2P_GE_MULT@ <= 127
+        && ((long)q + e) * @I8_2P_GO_GE_MULT@ <= 127
+        && (long)e2 * @I8_2P_GE2_MULT@ <= 127
+        && ((long)q2 + e2) * @I8_2P_GO2_GE2_MULT@ <= 127;
+    if (_use_i8)
         vecrec_ext_core_2p_i8 (km, qlen, query, tlen, target, m, mat, q, e, q2, e2, w, end_bonus, flag, ez);
     else
         vecrec_ext_core_2p_i16(km, qlen, query, tlen, target, m, mat, q, e, q2, e2, w, end_bonus, flag, ez);
@@ -992,7 +1125,9 @@ static void @NM@(
                 static_cast<elt_type>(mat[c * m + target[j]]);
 #endif
 
-    int *sym = static_cast<int*>(kcalloc(km, static_cast<std::size_t>(R), sizeof(int)));
+    // A row-tiled kernel may evaluate up to RPI-1 padded rows in its last
+    // block; give ProfileSignal2D a zero-filled halo for those reads.
+    int *sym = static_cast<int*>(kcalloc(km, static_cast<std::size_t>(R + RPI + 1), sizeof(int)));
     for (int i = 0; i < qlen; ++i) sym[i + 1] = static_cast<int>(query[i]);
 
     // H matrix, TIGHT stride C (padding cols [C,phys_w) are never read).
@@ -1242,6 +1377,18 @@ for (_cname, _kname, _pieces, _ctorargs) in _CORE_SPECS:
 
 SRC = (SRC
        .replace("@CORES@", "\n".join(_cores))
+       .replace("@I8_1P_GE_MULT@", str(max(
+           KMETA["k_vr_1p_i8"]["gap_multipliers"]["ge"],
+           KMETA["k_vr_2p_i8"]["gap_multipliers"]["ge"],
+           KMETA["k_vr_2p_i8"]["gap_multipliers"]["ge2"])))
+       .replace("@I8_1P_GO_GE_MULT@", str(max(
+           KMETA["k_vr_1p_i8"]["gap_multipliers"]["go_ge"],
+           KMETA["k_vr_2p_i8"]["gap_multipliers"]["go_ge"],
+           KMETA["k_vr_2p_i8"]["gap_multipliers"]["go2_ge2"])))
+       .replace("@I8_2P_GE_MULT@", str(KMETA["k_vr_2p_i8"]["gap_multipliers"]["ge"]))
+       .replace("@I8_2P_GO_GE_MULT@", str(KMETA["k_vr_2p_i8"]["gap_multipliers"]["go_ge"]))
+       .replace("@I8_2P_GE2_MULT@", str(KMETA["k_vr_2p_i8"]["gap_multipliers"]["ge2"]))
+       .replace("@I8_2P_GO2_GE2_MULT@", str(KMETA["k_vr_2p_i8"]["gap_multipliers"]["go2_ge2"]))
        .replace("@SCHED1@", str(KMETA["k_vr_1p_i16"]["sched"]))
        .replace("@EPI1@", str(KMETA["k_vr_1p_i16"]["epi"]))
        .replace("@RPI1@", str(KMETA["k_vr_1p_i16"]["rpi"]))
@@ -1251,10 +1398,20 @@ SRC = (SRC
        .replace("@KSW2_H@", ksw2_h_rel))
 
 pathlib.Path(src_path).write_text(SRC)
+meta_path = out_dir / "vecrec_schedule_search.json"
+meta_path.write_text(json.dumps({
+    "max_bits": max_bits,
+    "kernels": {label: {**selection[3],
+                        "element_per_iter": KMETA[f"k_vr_{label}"]["epi"],
+                        "rows_per_iter": KMETA[f"k_vr_{label}"]["rpi"],
+                        "gap_multipliers": KMETA[f"k_vr_{label}"]["gap_multipliers"]}
+                for label, selection in SELECTIONS.items()},
+}, indent=2) + "\n")
 
 print("Generated:")
 print(f"  {hdr_path}")
 print(f"  {src_path}")
+print(f"  {meta_path}")
 print(f"  dual-width kernels (max_bits={max_bits}, I8 dispatch when max score <= VR_I8_MAX):")
 for _kname, _m in KMETA.items():
     print(f"    {_kname:12s} sched={_m['sched']:2d} epi={_m['epi']:2d} rpi={_m['rpi']} ({_m['ctype']})")

@@ -17,6 +17,8 @@ flags.py. Add a comparison by adding a Scenario entry — no change here.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import pathlib
 import statistics
@@ -37,6 +39,7 @@ COMPARE_PY = REPO / "end_to_end_baselines" / "scripts" / "compare_e2e_sam.py"
 ORIGINAL = BIN / "minimap2_original"
 VECREC = BIN / "minimap2_vecrec"
 _MARKER = BIN / ".mm2_build_defines"
+SCHEDULE_META = _HERE / "generated" / "vecrec_schedule_search.json"
 
 
 def _build_env(defines: list[str]) -> dict[str, str]:
@@ -49,13 +52,32 @@ def _build_env(defines: list[str]) -> dict[str, str]:
 
 
 def ensure_build(defines: list[str], rebuild: bool) -> None:
-    key = ",".join(sorted(defines))
+    # The schedule search is a build step. A change to its inputs or code must
+    # invalidate the binary cache, otherwise an old fixed-schedule binary could
+    # silently survive a new e2e run.
+    build_env_inputs = {name: os.environ.get(name) for name in (
+        "VECREC_MAX_BITS", "VECREC_TUNE_SIZE", "VECREC_TUNE_ITERS",
+        "VECREC_SCHED_1P", "VECREC_SCHED_1P_I8", "VECREC_SCHED_2P",
+        "VECREC_SCHED_2P_I8", "VECREC_MULT_1P", "VECREC_MULT_2P",
+        "VECREC_RPI_1P", "VECREC_RPI_2P", "VECREC_PARALLEL_COMPILE",
+        "VECREC_EXTRA_DEFS", "VECREC_PHASE_TIMING", "VECREC_UNSAFE",
+        "MM_DEFS", "DEBUG", "ZLIB_DIR",
+    )}
+    source_paths = [BUILD_SH, BUILD_SH.with_name("generate_kernel.py"),
+                    REPO / "vec-rec" / "src" / "vecrec" / "optimize.py",
+                    REPO / "vec-rec" / "src" / "vecrec" / "codegen" / "generate_kernel.py"]
+    source_hashes = {str(p.relative_to(REPO)): hashlib.sha256(p.read_bytes()).hexdigest()
+                     for p in source_paths}
+    key = json.dumps({"defines": sorted(defines), "build_env": build_env_inputs,
+                      "sources": source_hashes}, sort_keys=True)
     have = ORIGINAL.exists() and VECREC.exists()
     cached = _MARKER.read_text().strip() if _MARKER.exists() else None
-    if have and not rebuild and cached == key:
-        print(f"[build] reusing binaries (defines: {key or 'default'})")
+    if have and SCHEDULE_META.exists() and not rebuild and cached == key:
+        print(f"[build] reusing binaries (defines: {','.join(sorted(defines)) or 'default'})")
+        _print_schedules()
         return
-    print(f"[build] building minimap2 (defines: {key or 'default'}) ...")
+    print(f"[build] searching VecRec schedules and building minimap2 "
+          f"(defines: {','.join(sorted(defines)) or 'default'}) ...", flush=True)
     r = subprocess.run(["bash", str(BUILD_SH)], cwd=REPO, env=_build_env(defines),
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     if r.returncode != 0:
@@ -63,6 +85,16 @@ def ensure_build(defines: list[str], rebuild: bool) -> None:
         raise SystemExit(f"[build] FAILED (exit {r.returncode})")
     _MARKER.write_text(key)
     print("[build] ok")
+    _print_schedules()
+
+
+def _print_schedules() -> None:
+    kernels = json.loads(SCHEDULE_META.read_text())["kernels"]
+    selected = ", ".join(
+        f"{name}=k{kernels[name]['schedule_index']}"
+        for name in ("2p_i16", "2p_i8", "1p_i16", "1p_i8")
+    )
+    print(f"[build] VecRec schedules: {selected}")
 
 
 def _mm2_flags(sc: scenarios.Scenario) -> list[str]:

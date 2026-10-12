@@ -65,21 +65,15 @@ fi
 # fits the DP chunk better — ~18% faster extend on map-ont vs epi=64. Override
 # with VECREC_MAX_BITS to experiment.
 export VECREC_MAX_BITS="${VECREC_MAX_BITS:-256}"
-# Small-matrix-optimized schedules for minimap2's short seed extensions, measured
-# at VECREC_MAX_BITS=256 over the candidate schedules: 2-piece idx=12, 1-piece
-# idx=9, both ele-per-iter mult=2. generate_kernel.py defaults to element width
-# I16; runtime I8/I16 dual-width selection by max score is a later phase.
+# Search VecRec's candidate schedules and codegen settings on this host for
+# each 1-piece/2-piece and I8/I16 kernel. A positional index is retained for
+# explicit experiments; VECREC_SCHED_* can override individual variants.
 if [ -n "${1:-}" ]; then
-    # Legacy: a single positional arg sets BOTH schedule indices (mult stays 2).
     echo "Generating vecrec kernel header (schedule k${1}, max_bits=${VECREC_MAX_BITS})..."
     cd "$REPO"
     uv run python end_to_end_baselines/scripts/generate_kernel.py "$1"
 else
-    export VECREC_SCHED_2P="${VECREC_SCHED_2P:-12}"
-    export VECREC_SCHED_1P="${VECREC_SCHED_1P:-9}"
-    export VECREC_MULT_2P="${VECREC_MULT_2P:-2}"
-    export VECREC_MULT_1P="${VECREC_MULT_1P:-2}"
-    echo "Generating vecrec kernel header (2p idx=${VECREC_SCHED_2P} 1p idx=${VECREC_SCHED_1P} mult=2, max_bits=${VECREC_MAX_BITS})..."
+    echo "Searching VecRec schedules (max_bits=${VECREC_MAX_BITS}) and generating the drop-in..."
     cd "$REPO"
     uv run python end_to_end_baselines/scripts/generate_kernel.py
 fi

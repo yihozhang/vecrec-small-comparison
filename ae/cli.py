@@ -121,7 +121,7 @@ def bench_main(argv: list[str] | None = None) -> int:
     ex.add_argument("--warmup", type=int, help="wild/leetcode: warmup iterations per kernel")
     ex.add_argument("--size", type=int, help="bio: square matrix size (default 2048)")
     ex.add_argument("--reps", type=int, help="e2e/reptile: repetitions (default 5 / 3)")
-    ex.add_argument("--rebuild", action="store_true", help="e2e: rebuild the minimap2 binaries")
+    ex.add_argument("--rebuild", action="store_true", help="e2e: rerun VecRec schedule search and rebuild minimap2")
     ex.add_argument("--quick", action="store_true",
                     help="smoke-test settings (small sizes / few iterations); results are NOT paper-grade")
     args = ap.parse_args(argv)

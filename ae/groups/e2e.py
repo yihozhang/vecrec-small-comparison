@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import csv
 import importlib.util
+import json
 import statistics
 import subprocess
 import sys
@@ -38,7 +39,8 @@ FETCH_SCRIPTS = {
 }
 
 COLUMNS = ["dataset", "scenario", "dataset_name", "preset", "reps",
-           "original_ms", "vecrec_ms", "speedup", "original_alns", "vecrec_alns"]
+           "original_ms", "vecrec_ms", "speedup", "original_alns", "vecrec_alns",
+           "schedule_2p_i16", "schedule_2p_i8", "schedule_1p_i16", "schedule_1p_i8"]
 
 
 def _load(name: str):
@@ -105,9 +107,15 @@ def exec_group(host: str, *, reps: int = 5, rebuild: bool = False,
         ensure_dataset(ds)
         mm2run.ensure_build(sc.defines, rebuild)
         rebuild = False
+        selected = json.loads(mm2run.SCHEDULE_META.read_text())["kernels"]
+        schedule_cols = {f"schedule_{name}":
+                         f"k{selected[name]['schedule_index']}/"
+                         f"m{selected[name]['ele_per_iter_multiple']}/"
+                         f"r{selected[name]['rows_per_iter']}"
+                         for name in ("2p_i16", "2p_i8", "1p_i16", "1p_i8")}
         rec = time_scenario(mm2run, sc, ds, reps)
         rows.append({"dataset": label, "scenario": sc.name, "dataset_name": ds.name,
-                     "preset": sc.preset, "reps": reps, **rec})
+                     "preset": sc.preset, "reps": reps, **rec, **schedule_cols})
         merge_csv(out, rows, COLUMNS, key="dataset")
     print(f"wrote {out}")
     return out

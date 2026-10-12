@@ -27,14 +27,21 @@ bash end_to_end_baselines/scripts/build_bwa_mem2.sh [schedule_index]
 bash end_to_end_baselines/scripts/build_bowtie2.sh [schedule_index]
 ```
 
-Optional `schedule_index` overrides the default VecRec schedule (k8 for all).
-Lower index = smaller epi = less SIMD parallelism but more compatible.
+For minimap2, omitting `schedule_index` runs VecRec's standard schedule and
+codegen search separately for the 1-piece and 2-piece int8/int16 variants on
+the current host. It benchmarks the kernels on 256×256 matrices with map-ont
+gap penalties (100 timed iterations by default), then writes the choices to
+`minimap2/generated/vecrec_schedule_search.json`. A positional index or
+`VECREC_SCHED_1P` / `VECREC_SCHED_2P` explicitly overrides that search.
+`bench exec e2e --rebuild` reruns the search. This is kernel-level tuning;
+the e2e timing still measures the completed minimap2 binaries afterward.
+The BWA-MEM2 and Bowtie2 scripts still use their fixed defaults.
 
 ## Codegen scripts
 
 | Script | Output | Default schedule |
 |--------|--------|-----------------|
-| `generate_kernel.py` | `minimap2/generated/vecrec_affine_kernel.h` | k8 (epi=32, dual-affine, bw=500) |
+| `generate_kernel.py` | `minimap2/generated/vecrec_affine_kernel.h` | Searched per variant (1-piece/2-piece, int8/int16) |
 | `generate_bwa_kernel.py` | `bwa_mem2/generated/vecrec_bwa_kernel.h` | k8 (epi=32, 1-piece affine, bw=512) |
 | `generate_bowtie2_kernel.py` | `bowtie2/generated/vecrec_bt2_{ee,loc}_kernel.h` | k8 (epi=32, EE + local) |
 
