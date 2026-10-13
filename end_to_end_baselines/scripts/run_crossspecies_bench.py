@@ -1,11 +1,9 @@
 """Real-world large-extension benchmark: divergent cross-species genome alignment.
 
 This is the real-data analog of generate_sv_reads.py (Step 1). Aligning two
-divergent bacterial genomes with `asm20` produces exactly the regime where the
-VecRec drop-in wins: the conserved core anchors, but the ~15-20% divergent
-segments between anchors have no surviving seeds, so minimap2 fills them with
-large (~2000x2000+) gap-fill DPs. Measured: extension is ~98% of runtime and
-~70% of extension calls are >=256^2.
+divergent bacterial genomes with `asm20` produces large gap-fill DPs: the
+conserved core anchors, but the ~15-20% divergent segments between anchors have
+no surviving seeds, so minimap2 fills them with large gap-fill DPs.
 
 Default pair (downloaded from NCBI RefSeq, ~1.4 MB gzipped each):
   reference: Salmonella enterica LT2 (GCF_000006945.2)

@@ -116,12 +116,11 @@ int sw_traceback_full(
     // over the whole contiguous buffer equals the max over the interior; for a
     // positive max the located cell is interior.
     //
-    // Pass 1: value max -- a plain reduction the compiler auto-vectorizes (memory
-    // bandwidth bound, ~tens of µs). Pass 2: locate -- a *vectorized-compare*
-    // first-match with early exit. The naive scalar `if (mat[k]==best) idx=k`
-    // last-match pass does NOT vectorize and runs ~4-8x slower; comparing a whole
-    // SIMD chunk to the broadcast max and only descending to scalar on a hit keeps
-    // the locate near bandwidth too.
+    // Pass 1: value max -- a plain reduction the compiler auto-vectorizes.
+    // Pass 2: locate -- a *vectorized-compare* first-match with early exit:
+    // compare a whole SIMD chunk to the broadcast max and only descend to scalar
+    // on a hit (the naive scalar `if (mat[k]==best) idx=k` loop does not
+    // vectorize).
     const int total = (rows + 1) * stride;
     H vbest = 0;
     for (int k = 0; k < total; ++k) vbest = mat[k] > vbest ? mat[k] : vbest;

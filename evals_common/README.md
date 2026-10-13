@@ -84,8 +84,8 @@ The binary:
 2. Runs `Timer::median_seconds(warmup, iters, [&]{ kernel(); traceback(); })`
 3. Prints `{"score": N, "seconds": T, "gcups": G, "cells": C}`
 
-This is identical to how the library baselines work, so comparisons are
-apples-to-apples: every number includes allocation + DP + traceback.
+This is the same contract the library baselines use; every VecRec timing covers
+allocation + DP + traceback.
 
 ## Adding a Python baseline
 

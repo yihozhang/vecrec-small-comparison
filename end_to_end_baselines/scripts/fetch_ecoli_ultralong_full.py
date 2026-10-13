@@ -1,14 +1,12 @@
 """Real-world dataset: subsample of the full Loman/Quick ultra-long E. coli
 ONT run vs K-12 MG1655.
 
-ecoli-ultralong-real uses the 371-read nanotest subset. This fetch pulls the
-full CLIMB release and keeps the N longest reads (default 500) so the ablation
-stays tractable while preserving the ultra-long length distribution that
-favors VecRec under map-ont exact DP.
+This fetch pulls the full CLIMB release and keeps the N longest reads
+(default 500).
 
 Usage:
     uv run python end_to_end_baselines/scripts/fetch_ecoli_ultralong_full.py
-    uv run python end_to_end_baselines/scripts/fetch_ecoli_ultralong_full.py --n 800
+    uv run python end_to_end_baselines/scripts/fetch_ecoli_ultralong_full.py --n 500
 """
 from __future__ import annotations
 
@@ -25,7 +23,7 @@ REF_URL = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 RAW = _DATA / "ecoli_allreads_full.fasta"
 READS = _DATA / "ecoli_ultralong_full_reads.fa"
-REF = _DATA / "ecoli_k12_mg1655.fna"  # shared with ecoli-ultralong-real
+REF = _DATA / "ecoli_k12_mg1655.fna"  # shared with ecoli-strains-real / ecoli-hifi-real
 
 
 def _iter_fasta(path: pathlib.Path):

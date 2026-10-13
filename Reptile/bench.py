@@ -4,12 +4,8 @@ Two comparisons live here (``--family`` selects which run):
 
 1. ``vecrec`` (default) — REPTILE tiling (row/col/block) wrapped around the
    compiled VecRec kernel vs. that same kernel run untiled (plain VecRec).
-   Expected: ~parity (tiling barely moves a kernel that already captures its
-   own row-locality in a ring buffer).
-2. ``loops`` — REPTILE-*generated* tiled scalar DP loops (no VecRec — the
-   "vanilla" comparison point) vs VecRec untiled. Expected: VecRec wins
-   decisively regardless of how well the scalar loops are tiled, since the
-   win is in the vectorized inner loop, not the tile schedule.
+2. ``loops`` — REPTILE's tiled scalar DP loops (no VecRec; taken from
+   REPTILE's artifact) vs VecRec untiled.
 
 ``--family both`` runs both and additionally reports an explicit
 scalar-loops-vs-VecRec speedup (see ``vecrec_vs_scalar`` in the saved JSON).
@@ -350,8 +346,7 @@ def sweep(kind: str, sizes, tiles, reps: int, warmup: int, iterations: int,
                     }
 
         # Cross-family verdict: scalar loops (best tiled or untiled config,
-        # whichever is fastest) vs plain VecRec untiled. Expected: VecRec wins
-        # decisively, regardless of how the scalar loops are tiled.
+        # whichever is fastest) vs plain VecRec untiled.
         vecrec_entry = row["configs"].get("vecrec_untiled")
         loops_entries = {k: v for k, v in row["configs"].items()
                          if k.startswith("loops_") and v["ok"]}
@@ -480,7 +475,7 @@ def _fmt_ms(sec: Optional[float]) -> str:
 
 
 def _fmt_x(baseline: Optional[float], seconds: Optional[float]) -> str:
-    """Speedup as a 'VecRec-faster' factor: baseline / seconds. '-' if either missing."""
+    """Speedup factor: baseline / seconds. '-' if either missing."""
     if baseline is None or seconds is None or seconds <= 0:
         return "-"
     return f"{baseline / seconds:.2f}x"
@@ -532,8 +527,8 @@ def _detailed_rows(cfg: dict) -> list[dict]:
     their tilings. Missing measurements become ``seconds=None`` (rendered n/a) so
     the table's shape never changes between runs. Each row carries raw time plus
     two speedup factors against fixed baselines:
-      * vs Reptile = loops_untiled / time  (VecRec-faster factor; shows dominance)
-      * vs VecRec  = vecrec_untiled / time  (shows tiling is ~parity, ~1.00x)
+      * vs Reptile = loops_untiled / time
+      * vs VecRec  = vecrec_untiled / time
     For row/col/block the fastest tile found is used and reported in ``tile``.
     """
     reptile_base = cfg.get("loops_untiled", {}).get("seconds")
@@ -590,8 +585,8 @@ def _print_size_table(kind: str, row: dict, tiles) -> None:
         print(f"    {marker} {r['strategy']:<{w['strategy']}} {r['tiling']:<{w['tiling']}} "
               f"{r['tile']:>{w['tile']}} {_fmt_ms(r['seconds']):>{w['time']}} "
               f"{r['vs_reptile']:>{w['vsr']}} {r['vs_vecrec']:>{w['vsv']}}  {_fmt_ok(r['ok'])}")
-    print("      (* = pivot baseline; 'vs Reptile' = VecRec-faster factor over scalar "
-          "untiled; 'vs VecRec' \u2248 1.00 means tiling is a wash)")
+    print("      (* = pivot baseline; 'vs Reptile' = scalar untiled time / this time; "
+          "'vs VecRec' = VecRec untiled time / this time)")
 
 
 def _save(results: list[dict], out_dir: Path) -> None:
@@ -600,14 +595,13 @@ def _save(results: list[dict], out_dir: Path) -> None:
     (out_dir / f"results_{stamp}.json").write_text(json.dumps(results, indent=2))
     # Markdown summary: one unified detailed table per (kind, size). Rows group
     # the three strategies (Reptile scalar / VecRec / VecRec+Reptile); columns
-    # carry raw time plus two speedup factors so both headline messages read off
-    # directly: 'vs Reptile' >> 1 (VecRec wins) and 'vs VecRec' ~ 1 (tiling is a wash).
+    # carry raw time plus two speedup factors ('vs Reptile', 'vs VecRec').
     lines = ["# REPTILE tiling results", "",
              f"Generated {stamp}",
              "",
-             "`vs Reptile` = how much faster than scalar (Reptile) untiled "
-             "(baseline for that column). `vs VecRec` = relative to VecRec untiled; "
-             "~1.00x means tiling neither helps nor hurts. `*` marks the VecRec pivot.",
+             "`vs Reptile` = scalar (Reptile) untiled time / this time. "
+             "`vs VecRec` = VecRec untiled time / this time. "
+             "`*` marks the VecRec pivot.",
              ""]
     for res in results:
         kind = res["kind"]
@@ -647,11 +641,10 @@ def main() -> int:
     ap.add_argument("--family", choices=("both", "vecrec", "loops"), default="vecrec",
                     help="which driver family to sweep. Default 'vecrec' = REPTILE "
                          "tiling (row/col/block) around the VecRec black box vs. plain "
-                         "VecRec untiled (expected: ~parity). 'loops' = the vanilla "
-                         "scalar REPTILE-generated tiled loops (no VecRec), tiled vs "
+                         "VecRec untiled. 'loops' = the "
+                         "REPTILE's tiled scalar loops (no VecRec), tiled vs "
                          "untiled scalar. 'both' runs both AND reports the cross-family "
-                         "verdict: best scalar-loops config vs plain VecRec untiled "
-                         "(expected: VecRec wins decisively).")
+                         "comparison: best scalar-loops config vs plain VecRec untiled.")
     ap.add_argument("--score-only", action="store_true", dest="score_only",
                     help="score-only mode for the VecRec family: never materialize the "
                          "O(N^2) matrix (no DRAM writeback), keep only the final score.")

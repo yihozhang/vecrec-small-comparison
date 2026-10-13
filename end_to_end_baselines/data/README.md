@@ -15,13 +15,14 @@ folder; the minimap2 comparison harness selects sets via
 
 | Dataset | Ref + reads | Regime | Notes |
 |---------|-------------|--------|-------|
-| `parity-smoke` | `MT-human.fa` + `mt_reads.fq` | smoke | 200 x 1000bp; ~150^2 DP — correctness/parity, not a fair perf test |
-| `sv-fair` | `yeast/chrXII.fa` + `sv_reads.fq` | fair | large-extension SV reads; ~2000^2 gap-fills (VecRec's regime) |
+| `parity-smoke` | `MT-human.fa` + `mt_reads.fq` | smoke | 200 x 1000bp; correctness/parity smoke test |
+| `sv-fair` | `yeast/chrXII.fa` + `sv_reads.fq` | fair | large-extension SV reads; ~2000^2 gap-fills |
 | `tandem` | `tandem_ref.fa` + `tandem_reads.fq` | fair | 200 x 15kbp over a 50-copy tandem repeat |
 | `crossspecies-real` | `realbench/salmonella.fna` + `realbench/ecoli_contigs_50k.fq` | fair | real ~15-20% divergence (asm20); genomes fetched into `realbench/` (gitignored) |
 
-"fair" = the natural minimap2 regime is no-band / no-z-drop / no-approx, i.e. a
-fair kernel-vs-kernel comparison at DP sizes > 256.
+"fair" marks datasets run in the no-band / no-z-drop / no-approx-max regime that
+the VecRec drop-in supports (see `end_to_end_baselines/minimap2/CLAUDE.md`);
+"smoke" marks small correctness/parity checks.
 
 Regenerate the synthetic sets:
 
@@ -34,9 +35,8 @@ uv run python end_to_end_baselines/minimap2/make_datasets.py sv-fair # one
 
 `mt_reads_long.fq`, `mt_reads_noisy.fq`, `mt_reads_e1/e2/e3.fq`,
 `mt_reads_xspecies.fq` — clean/noisy/divergent variants used by the other
-aligners' speed/correctness sweeps. In minimap2 terms these are mostly small-DP
-or out-of-regime (divergent -> banded), so they are not part of the fair
-comparison set above.
+aligners' sweeps. In minimap2 terms these are mostly small-DP or out-of-regime
+(divergent -> banded), so they are not part of the minimap2 dataset set above.
 
 ## Yeast data (`yeast/`)
 

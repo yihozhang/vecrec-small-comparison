@@ -2,10 +2,9 @@
 
 Motivation
 ----------
-minimap2's ordinary map-ont extension matrices are tiny (~144x144) because
-chaining anchors densely, so the extension DP is a small, sub-256 workload where
-the VecRec drop-in cannot show its advantage. To exercise the regime where
-VecRec wins (large DP matrices), we need LARGE inter-anchor gaps.
+minimap2's ordinary map-ont extension matrices are small because chaining
+anchors densely. To exercise large extension DP matrices we need LARGE
+inter-anchor gaps.
 
 This generator synthesizes reads with two EXACT-match flanks (strong, unambiguous
 anchors) surrounding a highly DIVERGENT core (substitutions + indels dense enough
@@ -40,11 +39,8 @@ the same regime:
   * MM_NO_APPROX=1   : forces stock ksw2 to the EXACT max path (drops
                        KSW_EZ_APPROX_MAX), matching VecRec's exact full matrix.
 
-Measured (x86, yeast chrXII, core=2000 ~2000x2000 matrices, single thread):
-  default (stock approx-max):  0.75x   |   fair (all three knobs): ~1.25x (VecRec wins)
-
-Without MM_NO_APPROX=1, stock uses a lightweight approximate-max path for gap
-fills (no full-H store) and looks faster; that is not the same computation.
+Without MM_NO_APPROX=1, stock uses an approximate-max path for gap fills (no
+full-H store); that is not the same computation.
 """
 from __future__ import annotations
 

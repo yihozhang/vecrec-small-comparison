@@ -65,21 +65,11 @@ FLAGS: list[Flag] = [
          "Skip the mqe/mte last-row / last-column scans (timing only)."),
     Flag("VR_I8_MAX", VECREC, "120", "vecrec",
          "Upper-bound threshold (min(qlen,tlen)*max_match + end_bonus) for the "
-         "per-call I8-vs-I16 dispatch: <= this uses the narrow I8 core. Was "
-         "briefly disabled (VR_I8_MAX=0) after a real codegen bug was found -- "
-         "both I8 and I16's internal '-infinity' sentinel used only half the "
-         "representable range (lowest(elt_type)/2) even though the saturating "
-         "arithmetic that motivated that choice makes the full range safe, so a "
-         "genuinely bad-but-real score could collide with (and numerically "
-         "beat) the sentinel. FIXED upstream in vec-rec (util.py's val_to_str "
-         "+ common.h's Sat-variant sentinels now use the type's true "
-         "lowest()/max()), which doubles the safe magnitude before collision; "
-         "I8 is re-enabled at its original default. VR_I8_SAFE_MAG / "
-         "VR_I16_SAFE_MAG (see generate_kernel.py) provide a residual safety "
-         "net -- an artificially huge unbanded divergent call can still exceed "
-         "even the widened range, and falls back to stock ksw2 in that case. "
-         "See end_to_end_baselines/minimap2/CLAUDE.md for the full writeup and "
-         "repro."),
+         "per-call I8-vs-I16 dispatch: <= this uses the narrow I8 core. The "
+         "negative side is bounded separately by VR_I8_SAFE_MAG / "
+         "VR_I16_SAFE_MAG (see generate_kernel.py), which delegate a call to "
+         "stock ksw2 when its score could reach the kernel's internal "
+         "'-infinity' sentinel (lowest(elt_type)/2 in the pinned vec-rec)."),
 ]
 
 BY_NAME = {f.name: f for f in FLAGS}

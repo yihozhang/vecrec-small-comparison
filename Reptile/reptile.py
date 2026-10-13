@@ -19,12 +19,11 @@ comparable to everything else in the repo):
    * ``col``:     REPTILE column-panel tiling (checkpoint/restore the carries).
    * ``block``:   REPTILE 2D tiling — row-band outer, column-panel inner.
 
-2. ``loops`` family — REPTILE-*generated* tiled loops (no external mapping),
-   exactly the shape REPTILE emits for a recurrence whose tiles map to no
-   library (paper §9.6). Approaches: ``untiled`` / ``row`` / ``col`` / ``block``.
-   This is the "vanilla" scalar comparison point: it shows what tiling alone
-   (no vectorized kernel) gets you, so it can be measured against the VecRec
-   black box (expected: VecRec wins decisively regardless of tile schedule).
+2. ``loops`` family — REPTILE's tiled scalar loops (no external mapping),
+   taken from the implementation in REPTILE's artifact and embedded here as
+   code templates. Approaches: ``untiled`` / ``row`` / ``col`` / ``block``.
+   It is the scalar (no vectorized kernel) comparison point for the VecRec
+   kernel.
 
 The chosen approach and tile sizes are read at *run time* from ``input.json``
 (fields ``approach`` / ``tile_rows`` / ``tile_cols``), so one compiled binary
@@ -503,15 +502,12 @@ int main(int argc, char** argv) {{
 # Driver family 2: REPTILE-generated tiled loops (no external mapping).
 # --------------------------------------------------------------------------
 
-# Split into: alloc (once, outside timer) / reset+DP (timed) so tiling wins are
-# not drowned by O(N^2) vector zero-init + traceback.
+# Split into: alloc (once, outside timer) / reset+DP (timed); allocation and
+# traceback are not timed.
 #
-# NW/SW default path is O(N) score-only (2-row / col-panel / block-panel), the
-# form where REPTILE column tiling actually shrinks the working set vs an
-# untiled prev-row that spills L1/L2. Full-matrix nests (SEQ nw.cpp / sw.c
-# style) are kept for --verify / non-score_only so bit-identity checks still
-# work; on this machine those full-matrix tiles do not beat untiled under
-# fair hot timing.
+# The NW/SW timed path is O(N) score-only (2-row / col-panel / block-panel).
+# Full-matrix nests (SEQ nw.cpp / sw.c style) are used for --verify so
+# bit-identity checks still work.
 
 _NW_LOOPS_ALLOC = """const char* xs = in.x.c_str();
         const char* ys = in.y.c_str();

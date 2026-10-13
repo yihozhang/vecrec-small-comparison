@@ -38,6 +38,10 @@ case "$ARCH" in
         EXT_OBJS="ksw2_extz2_neon.o ksw2_extd2_neon.o"
         NEED_EXTS2_REBUILD=0
         ORIG_CC_FLAGS="-DKSW_SSE2_ONLY -D__SSE2__ -I$MM2/sse2neon -D_FILE_OFFSET_BITS=64 -fsigned-char"
+        EXTS2_ARCH_FLAGS=""
+        # The Makefile appends these via `CFLAGS+=`, which a command-line CFLAGS
+        # overrides, so they are re-added to MM2_CFLAGS below.
+        MM2_ARCH_CFLAGS="-D_FILE_OFFSET_BITS=64 -fsigned-char"
         ;;
     *)
         echo "Architecture: ${ARCH} (SSE)"
@@ -46,7 +50,12 @@ case "$ARCH" in
                   ksw2_extz2_sse2.o ksw2_extd2_sse2.o ksw2_exts2_sse2.o \
                   ksw2_dispatch.o"
         NEED_EXTS2_REBUILD=1
-        ORIG_CC_FLAGS="-msse2 -DKSW_SSE2_ONLY"
+        # Standalone (non-dispatch) stock ksw2 objects. Without KSW_SSE2_ONLY they
+        # take the SSE4.1 code path whenever the target supports it, which is
+        # the path the stock binary's runtime dispatcher selects on such CPUs.
+        ORIG_CC_FLAGS=""
+        EXTS2_ARCH_FLAGS=""
+        MM2_ARCH_CFLAGS=""
         ;;
 esac
 # Link the C++ runtime used by clang++ for the VecRec wrapper.
@@ -78,10 +87,7 @@ fi
 
 # ── 3. Generate vecrec kernel (arch-aware) ────────────────────────────────────
 # Vector width for schedule selection. Default 256 (epi=32) rather than the
-# native 512 (epi=64): minimap2's extension calls are short near-diagonal
-# segments (<~128 cols), where the smaller EPI cuts phys_w padding waste and
-# fits the DP chunk better — ~18% faster extend on map-ont vs epi=64. Override
-# with VECREC_MAX_BITS to experiment.
+# native 512 (epi=64). Override with VECREC_MAX_BITS.
 export VECREC_MAX_BITS="${VECREC_MAX_BITS:-256}"
 # Search VecRec's candidate schedules and codegen settings on this host for
 # each 1-piece/2-piece and I8/I16 kernel. A positional index is retained for
@@ -106,17 +112,21 @@ if [ "$DEBUG" = "1" ]; then
     BIN_SUFFIX="_debug"
     VECREC_OPT="-O0 -g"
     EXTS2_OPT="-O0 -g"
+    MM2_CFLAGS="-g -O0 -Wall -Wc++-compat ${MM2_ARCH_CFLAGS}"
     echo "DEBUG build: -O0 -g (binaries get the '${BIN_SUFFIX}' suffix)"
 else
     BIN_SUFFIX=""
     VECREC_OPT="-O3 -march=native"
-    EXTS2_OPT="-O3"
+    # Stock minimap2/ksw2 gets the same optimisation level and target as the
+    # VecRec wrapper (minimap2's Makefile default is -O2 with no -march).
+    EXTS2_OPT="-O3 -march=native"
+    MM2_CFLAGS="-g -Wall -O3 -march=native -Wc++-compat ${MM2_ARCH_CFLAGS}"
 fi
 # ── 3c. Phase-timing toggle (OFF by default) ──────────────────────────────────
 # VECREC_PHASE_TIMING=1 compiles in the [extend-phases] / [vecrec-phases] timers
 # and counters. OFF by default: those shared per-call/per-anti-diagonal counters
-# contend on cache lines under -t N and (measured) throttle multi-thread scaling
-# up to ~5x, so enable ONLY for single-thread profiling — never for a perf run.
+# contend on cache lines under -t N, so enable ONLY for single-thread profiling —
+# never for a perf run.
 # Regime assertions are always compiled in. MM_DEFS carries extra -D flags for
 # the C build shared by BOTH binaries (align.c/ksw2), e.g. -DMM_EXACT_ONLY=0
 # (restore stock approx-max) or -DMM_COUNT_MATRIX (print [extend-size] at exit).
@@ -145,10 +155,7 @@ if [ "${VECREC_UNSAFE:-0}" = "1" ]; then
 fi
 # Keep this array nonempty: macOS's Bash 3.2 treats expansion of an empty array
 # as an unbound variable under `set -u`.
-MAKE_ARGS=(-j4 "CPPFLAGS=$CPP_DEFS")
-if [ "$DEBUG" = "1" ]; then
-    MAKE_ARGS+=("CFLAGS=-g -O0 -Wall -Wc++-compat")
-fi
+MAKE_ARGS=(-j4 "CPPFLAGS=$CPP_DEFS" "CFLAGS=$MM2_CFLAGS")
 if [ -n "$ZLIB_INC" ]; then
     MAKE_ARGS+=("INCLUDES=$ZLIB_INC")
 fi
@@ -177,12 +184,12 @@ clang++ -std=c++20 ${VECREC_OPT} -DUSE_VECREC -DHAVE_KALLOC ${PHASE_DEF} ${VECRE
 # ── 4b'. (x86 only) Rebuild a standalone non-dispatch splice object ──────────
 # The original ksw_exts2_sse only existed via ksw2_dispatch.o, which we must
 # remove (it duplicates extz2/extd2). Recompile ksw2_exts2_sse.c WITHOUT
-# KSW_CPU_DISPATCH so it exports the public ksw_exts2_sse directly (native SSE2).
+# KSW_CPU_DISPATCH so it exports the public ksw_exts2_sse directly.
 EXTS2_OBJ=""
 if [ "${NEED_EXTS2_REBUILD}" = "1" ]; then
     echo "Compiling standalone ksw2 splice object (original splice kernel)..."
     EXTS2_OBJ="$MM2/ksw2_exts2_vecrecbuild.o"
-    "${CC:-cc}" ${EXTS2_OPT} -msse2 -DKSW_SSE2_ONLY -DHAVE_KALLOC \
+    "${CC:-cc}" ${EXTS2_OPT} ${EXTS2_ARCH_FLAGS} -DHAVE_KALLOC \
         -I "$MM2" ${ZLIB_INC} \
         -c "$MM2/ksw2_exts2_sse.c" \
         -o "$EXTS2_OBJ"

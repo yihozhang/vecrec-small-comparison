@@ -2,11 +2,10 @@
 
 530 real PacBio HiFi reads of E. coli K-12 (SRA accession SRR10971019, first
 15MiB subset redistributed via Zenodo for testing), mapped against the real
-E. coli K-12 MG1655 reference (shared with ecoli-ultralong-real). HiFi's near
+E. coli K-12 MG1655 reference (shared with ecoli-ultralong-full). HiFi's near
 -zero error rate (Q30+, >99.9% per-base accuracy) means indels are rare, so
-minimap2's real default band rarely clips and z-drop rarely fires -- the
-profile expected to most favor VecRec's approx-on path, in contrast to the
-noisy ONT ultra-long reads.
+minimap2's real default band rarely clips and z-drop rarely fires, in contrast
+to the noisy ONT ultra-long reads.
 
 Usage:
     uv run python end_to_end_baselines/scripts/fetch_ecoli_hifi.py
@@ -24,7 +23,7 @@ REF_URL = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
            "?db=nuccore&id=NC_000913.3&rettype=fasta&retmode=text")  # K-12 MG1655
 
 READS = _DATA / "ecoli_hifi_reads.fastq"
-REF = _DATA / "ecoli_k12_mg1655.fna"           # shared with ecoli-ultralong-real
+REF = _DATA / "ecoli_k12_mg1655.fna"           # shared with ecoli-ultralong-full
 
 
 def main() -> None:

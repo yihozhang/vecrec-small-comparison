@@ -26,10 +26,11 @@ In the paper, we reported the benchmark results on three microarchitecutres, inc
 
 The script provided in this repository can be used to obtain result on one machine, but you can use `fig` to assemble a table with results from multiple machines side by side.
 
-TODO: The paper's own numbers are transcribed under [`results/paper/`](results/paper)
-so you can render them next to your reproduction (see "Comparing with the paper").
+We have added numbers we obtained by running this artifact on a few microarchitecutres, they are named `results/<group>/<cpu-name>.{csv,json}`.
 
 ## 1. Requirements
+
+This artifact requires the following setups:
 
 * Linux x86-64 or macOS/arm64. A machine with a fairly recent vectorization instruction set (e.g.m AVX-512 or NEON). All experiments are single-threaded. We have not tested this artifact on a machine with the AVX2 instruction set only, but we expect the observed speedup to be slightly smaller. On Linux, you can use `lspu` or `cat /proc/cpuinfo` to view the supported instruction set.
 * **clang ≥ 17** on `PATH` (VecRec kernels use clang's vector extensions. seqan3 also needs clang ≥ 17). On macOS use Homebrew LLVM (`brew install llvm`), not Apple's.
@@ -193,14 +194,16 @@ median wall time of 5 runs and checks both binaries produce the same number of
 alignments.
 
 Datasets (downloaded into `end_to_end_baselines/data/realbench/`, gitignored):
-`ecoli-ultralong` = 371 real ultra-long ONT *E. coli* reads vs K-12 MG1655;
+`ecoli-ultralong` = the 500 longest reads of the full Loman/Quick ultra-long ONT *E. coli* run vs K-12 MG1655;
 `ecoli-strains` = *E. coli* O157:H7 chopped into 100 × 50 kbp contigs vs K-12;
 `pa-strains` = *P. aeruginosa* PA14 contigs vs PAO1.
 
 ### Table 5 (`reptile`)
 
-[`Reptile/`](Reptile): a REPTILE-style tiled scalar loop nest for
-Smith–Waterman (untiled / row / column / 2-D block tiling, tile sizes 4–512) and
+[`Reptile/`](Reptile): REPTILE's tiled scalar loop nest for Smith–Waterman,
+taken from the implementation in REPTILE's artifact (embedded as code templates in
+`Reptile/reptile.py` rather than imported as an external dependency), under
+untiled / row / column / 2-D block tiling with tile sizes 4–512, and
 the VecRec kernel, every configuration validated against the reference score.
 The table reports, per matrix size, the untiled scalar loops, the best scalar
 tiling, and VecRec untiled. The harness also tiles *around* the VecRec kernel

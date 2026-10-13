@@ -1,10 +1,7 @@
 """Measure memory pressure (cache/LLC traffic) of tiled vs untiled VecRec drivers.
 
-Wall-clock speedups for tiling around the VecRec black box are ~1x (see bench.py),
-but the REPTILE premise is about *locality*. This tool uses `perf stat` hardware
-counters to check whether column/2D tiling actually reduces memory traffic — most
-importantly LLC-load-misses (≈ main-memory accesses) — even when it doesn't move
-the wall clock.
+This tool uses `perf stat` hardware counters to measure whether column/2D tiling
+reduces memory traffic, most importantly LLC-load-misses (≈ main-memory accesses).
 
 It builds the fastest VecRec schedule for a recurrence (same selection as bench.py),
 then runs the SAME binary under `perf stat` with different input.json tiling configs

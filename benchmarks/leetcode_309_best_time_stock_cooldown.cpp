@@ -18,9 +18,8 @@ static void build_prices(int32_t* g, size_t n, uint64_t seed) {
   for (size_t i = 0; i < n; ++i) g[i] = (int32_t)price(rng);
 }
 
-static void serial(const int32_t* g, int32_t* out, int num_rows, int row_size) {
-  const size_t N = (size_t)num_rows * (size_t)row_size;
-  std::vector<int32_t> hold(N);
+// `hold` is a caller-owned num_rows*row_size scratch buffer (allocated outside the timed region).
+static void serial(const int32_t* g, int32_t* out, int32_t* hold, int num_rows, int row_size) {
   for (int r = 0; r < num_rows; ++r) {
     for (int i = 0; i < row_size; ++i) {
       size_t idx = (size_t)r * row_size + i;
@@ -42,14 +41,14 @@ int main(int argc, char** argv) {
   using Kb = leetcode_309_best_time_stock_cooldown_baseline;
   bench::Config cfg = bench::parse(argc, argv, /*rows=*/1, /*cols=*/1 << 22);
   bench::Dims<K> d = bench::physical_dims2<K, Kb>(cfg.num_rows, cfg.row_size);
-  std::vector<int32_t> g(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int32_t> g(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n), hold(d.n);
   build_prices(g.data(), d.n, cfg.seed);
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(g.data(), d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);
   bench::Timing tbase = bench::run_vecrec(
       [&] { return Kb(g.data(), d.cols); }, d.rows, d.cols, out_base.data(), cfg.warmup, cfg.iters);
   bench::Timing ts = bench::run_serial(
-      [&] { serial(g.data(), out_serial.data(), d.rows, d.cols); }, cfg.warmup, cfg.iters);
+      [&] { serial(g.data(), out_serial.data(), hold.data(), d.rows, d.cols); }, cfg.warmup, cfg.iters);
   bench::ErrStats eb = bench::compute_err(out_base.data(), out_serial.data(), d.n);
   bench::ErrStats eo = bench::compute_err(out_opt.data(), out_serial.data(), d.n);
   bool ok = (eo.max_abs == 0.0) && (eb.max_abs == 0.0);  // int32 max-plus: exact match

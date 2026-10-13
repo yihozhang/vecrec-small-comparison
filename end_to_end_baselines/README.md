@@ -12,12 +12,6 @@ pipeline logic (seeding, chaining, SAM output) unchanged.
 | BWA-MEM2 | `ar d/r libbwa.a` | `build_bwa_mem2.sh` | `run_bwa_e2e.py` |
 | Bowtie2 | Exclude `aligner_swsse*.cpp` | `build_bowtie2.sh` | `run_bowtie2_e2e.py` |
 
-Run the benchmark scripts for current numbers -- they aren't hardcoded here
-since they drift as the VecRec kernels and baselines change. General shape
-to expect: the vectorized win is largest on ARM/NEON (Clang); on x86 the
-scalar VecRec DP path (GCC) runs close to parity with the hand-tuned Intel
-AVX2 code.
-
 **Requires Clang 18 on Linux** — VecRec templates use Clang-only SIMD builtins.
 See root `CLAUDE.md` for the download URL and Ubuntu 24.04 `LD_PRELOAD` workaround.
 

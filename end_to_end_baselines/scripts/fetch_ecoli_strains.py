@@ -1,6 +1,6 @@
 """Real-world dataset: same-species, structurally-divergent genome comparison.
 
-E. coli K-12 MG1655 (already fetched for ecoli-ultralong-real/ecoli-hifi-real)
+E. coli K-12 MG1655 (already fetched for ecoli-ultralong-full/ecoli-hifi-real)
 vs. E. coli O157:H7 Sakai -- the same species as K-12, but a different
 pathotype with ~1.4 Mbp of extra genomic islands (prophages, O-islands) and
 core-genome SNP divergence of roughly 1-2%. The intent: same-species (so no
@@ -37,7 +37,7 @@ REF_URL = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 QRY_URL = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
            "?db=nuccore&id=NC_002695.2&rettype=fasta&retmode=text")  # O157:H7 Sakai
 
-REF = _DATA / "ecoli_k12_mg1655.fna"           # shared with ecoli-ultralong-real
+REF = _DATA / "ecoli_k12_mg1655.fna"           # shared with ecoli-ultralong-full
 O157 = _DATA / "ecoli_o157h7.fna"
 CONTIGS = _DATA / "ecoli_o157h7_contigs_50k.fq"
 

@@ -20,10 +20,10 @@ static void build_inputs(int32_t* a, int32_t* b, int32_t* sa, int32_t* sb, size_
   }
 }
 
+// `outB` is a caller-owned num_rows*row_size scratch buffer (allocated outside the timed region).
 static void serial(const int32_t* a, const int32_t* b, const int32_t* sa, const int32_t* sb,
-                   int32_t* outA, int num_rows, int row_size) {
+                   int32_t* outA, int32_t* outB, int num_rows, int row_size) {
   const size_t N = (size_t)num_rows * (size_t)row_size;
-  std::vector<int32_t> outB(N);
   for (size_t i = 0; i < N; ++i) {
     int32_t dA1 = (i >= 1) ? outA[i - 1] : SENTINEL;
     int32_t dB1 = (i >= 1) ? outB[i - 1] : SENTINEL;
@@ -40,13 +40,14 @@ int main(int argc, char** argv) {
   bench::Config cfg = bench::parse(argc, argv, /*rows=*/1, /*cols=*/1 << 22);
   bench::Dims<K> d = bench::physical_dims2<K, Kb>(cfg.num_rows, cfg.row_size);
   std::vector<int32_t> a(d.n), b(d.n), sa(d.n), sb(d.n), out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int32_t> outB(d.n);  // serial scratch
   build_inputs(a.data(), b.data(), sa.data(), sb.data(), d.n, cfg.seed);
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(a.data(), b.data(), sa.data(), sb.data(), d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);
   bench::Timing tbase = bench::run_vecrec(
       [&] { return Kb(a.data(), b.data(), sa.data(), sb.data(), d.cols); }, d.rows, d.cols, out_base.data(), cfg.warmup, cfg.iters);
   bench::Timing ts = bench::run_serial(
-      [&] { serial(a.data(), b.data(), sa.data(), sb.data(), out_serial.data(), d.rows, d.cols); }, cfg.warmup, cfg.iters);
+      [&] { serial(a.data(), b.data(), sa.data(), sb.data(), out_serial.data(), outB.data(), d.rows, d.cols); }, cfg.warmup, cfg.iters);
   bench::ErrStats eb = bench::compute_err(out_base.data(), out_serial.data(), d.n);
   bench::ErrStats eo = bench::compute_err(out_opt.data(), out_serial.data(), d.n);
   bool ok = (eo.max_abs == 0.0) && (eb.max_abs == 0.0);

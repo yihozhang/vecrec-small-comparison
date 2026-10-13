@@ -108,8 +108,7 @@ DATASETS: dict[str, Dataset] = {
              "recombination/rearrangement even between distant strains) -- "
              "88 contigs produce only 98 alignment records (near 1:1, highly "
              "collinear) vs the E. coli K-12/O157:H7 pair's ~140 splits for "
-             "one genome. Testing whether low structural noise + real "
-             "divergence is the combination that lets VecRec win static-approx.",
+             "one genome.",
         make="curl NC_000962.3 / NC_002755.2 via NCBI eutils into "
              "data/realbench/, then chop CDC1551 into 50kb contigs "
              "(gitignored, no dedicated fetch script yet)",
@@ -124,24 +123,10 @@ DATASETS: dict[str, Dataset] = {
         desc="530 real PacBio HiFi E. coli K-12 reads (SRR10971019, via Zenodo "
              "10.5281/zenodo.19050385; median 14.5kbp, Q30+, >99.9% accuracy) "
              "vs the same real E. coli K-12 MG1655 reference used by "
-             "ecoli-ultralong-real. Low error rate keeps indels rare, so "
+             "ecoli-ultralong-full. Low error rate keeps indels rare, so "
              "minimap2's real default band rarely clips and z-drop rarely "
-             "fires -- the profile expected to favor VecRec even with "
-             "approx-on, unlike the noisy ONT ultra-long reads.",
+             "fires, unlike the noisy ONT ultra-long reads.",
         make="uv run python end_to_end_baselines/scripts/fetch_ecoli_hifi.py "
-             "(downloads into data/realbench/, gitignored)",
-    ),
-    "ecoli-ultralong-real": Dataset(
-        name="ecoli-ultralong-real",
-        ref=DATA / "realbench" / "ecoli_k12_mg1655.fna",
-        reads=DATA / "realbench" / "ecoli_ultralong_reads.fa",
-        kind="real",
-        fair=True,  # real ONT reads, same-organism (no cross-species chimera noise)
-        desc="371 real ultra-long ONT E. coli reads (212bp-393kbp, Josh Quick's "
-             "ultra-long protocol) vs the real E. coli K-12 MG1655 reference. "
-             "Real basecalling error + real length distribution, same organism "
-             "as the reference (mostly co-linear -- no cross-species chimeras).",
-        make="uv run python end_to_end_baselines/scripts/fetch_ecoli_ultralong.py "
              "(downloads into data/realbench/, gitignored)",
     ),
     "ecoli-ultralong-full": Dataset(
@@ -151,9 +136,7 @@ DATASETS: dict[str, Dataset] = {
         kind="real",
         fair=True,
         desc="500 longest reads from the full Loman/Quick ultra-long ONT E. coli "
-             "run (CLIMB ecoli_allreads.fasta) vs K-12 MG1655. Same organism/"
-             "protocol as ecoli-ultralong-real but a larger subsample of the "
-             "full release, preserving the ultra-long length tail.",
+             "run (CLIMB ecoli_allreads.fasta) vs K-12 MG1655.",
         make="uv run python end_to_end_baselines/scripts/fetch_ecoli_ultralong_full.py "
              "(downloads into data/realbench/, gitignored)",
     ),

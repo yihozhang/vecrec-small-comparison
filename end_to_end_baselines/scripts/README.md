@@ -71,9 +71,9 @@ uv run python end_to_end_baselines/scripts/run_bowtie2_e2e.py --reps 5 [--reads 
 ```
 binary                 median    p10–p90   alignments
 ------------------------------------------------------
-minimap2-original      194.2ms   [193–195ms]       200
-minimap2-vecrec        162.7ms   [162–163ms]       200
-Speedup: 1.19×
+minimap2-original      <time>    [<p10>–<p90>]     200
+minimap2-vecrec        <time>    [<p10>–<p90>]     200
+Speedup: <ratio>×
 Alignment count: 200 = 200 ✓
 ```
 

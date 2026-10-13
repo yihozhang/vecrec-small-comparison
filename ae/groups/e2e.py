@@ -30,7 +30,6 @@ SCRIPTS = ROOT / "end_to_end_baselines" / "scripts"
 
 # dataset name (datasets.py) -> fetch script that materializes it
 FETCH_SCRIPTS = {
-    "ecoli-ultralong-real": "fetch_ecoli_ultralong.py",
     "ecoli-ultralong-full": "fetch_ecoli_ultralong_full.py",
     "ecoli-strains-real": "fetch_ecoli_strains.py",
     "pa-strains-real": "fetch_pa_strains.py",

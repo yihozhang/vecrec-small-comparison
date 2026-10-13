@@ -23,8 +23,8 @@ static void build_prices(int32_t* g, size_t n) {
   }
 }
 
-static void serial(const int32_t* g, int32_t* out, int rows, int cols) {
-  std::vector<int32_t> f1((size_t)rows * cols), f2((size_t)rows * cols);
+// `f1` and `f2` are caller-owned rows*cols scratch buffers (allocated outside the timed region).
+static void serial(const int32_t* g, int32_t* out, int32_t* f1, int32_t* f2, int rows, int cols) {
   for (int x = 0; x < rows; ++x) {
     for (int y = 0; y < cols; ++y) {
       size_t idx = (size_t)x * cols + y;
@@ -49,12 +49,13 @@ int main(int argc, char** argv) {
   build_prices(g.data(), g.size());
   stock_set_prices(g.data());  // register out-of-band; each kernel caches this pointer at construction
   std::vector<int32_t> out_opt(d.n), out_base(d.n), out_serial(d.n);
+  std::vector<int32_t> f1(d.n), f2(d.n);  // serial scratch
   bench::Timing topt = bench::run_vecrec(
       [&] { return K(d.cols); }, d.rows, d.cols, out_opt.data(), cfg.warmup, cfg.iters);
   bench::Timing tbase = bench::run_vecrec(
       [&] { return Kb(d.cols); }, d.rows, d.cols, out_base.data(), cfg.warmup, cfg.iters);
   bench::Timing ts = bench::run_serial(
-      [&] { serial(g.data(), out_serial.data(), d.rows, d.cols); }, cfg.warmup, cfg.iters);
+      [&] { serial(g.data(), out_serial.data(), f1.data(), f2.data(), d.rows, d.cols); }, cfg.warmup, cfg.iters);
   bench::ErrStats eb = bench::compute_err(out_base.data(), out_serial.data(), d.n);
   bench::ErrStats eo = bench::compute_err(out_opt.data(), out_serial.data(), d.n);
   bool ok = (eo.max_abs == 0.0) && (eb.max_abs == 0.0);  // int32 max-plus: exact match

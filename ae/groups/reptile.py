@@ -1,14 +1,10 @@
 """Table 5: Reptile tiling vs VecRec on Smith--Waterman (group ``reptile``).
 
 Runs ``Reptile/bench.py``'s sweep with ``--family both``: the REPTILE-style
-scalar tiled loop nests (untiled / row / col / block, sweeping tile sizes) and
-the VecRec kernel, all validated against the textbook reference score. The
-paper reports, per matrix size, scalar untiled, the best scalar tiling, and
-VecRec untiled.
-
-NOTE: the paper's numbers for this table were measured on Apple Silicon (M2);
-the loop-unrolling that makes VecRec's kernel fast there relies on NEON's
-larger register file, so x86 numbers will differ.
+scalar tiled loop nests (The REPTILE implementation is borrowed from REPTILE's artifact; untiled /
+row / col / block, sweeping tile sizes) and the VecRec kernel, all validated
+against the textbook reference score. The paper reports, per matrix size,
+scalar untiled, the best scalar tiling, and VecRec untiled.
 
 Results: ``results/reptile/<host>.json`` (the sweep's raw records).
 """

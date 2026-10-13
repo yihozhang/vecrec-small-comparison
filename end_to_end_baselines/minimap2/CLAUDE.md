@@ -9,16 +9,15 @@ A VecRec-generated affine kernel replaces minimap2's ksw2 extension functions
 | `bin/minimap2_original` | stock ksw2 |
 | `bin/minimap2_vecrec`   | VecRec drop-in |
 
-This doc consolidates: the goal + harness layout, the DP recurrence math for the
+This doc consolidates: the supported regime + harness layout, the DP recurrence math for the
 ksw2 extend kernels, the VecRec integration mechanism, and the compile-flag /
 instrumentation reference.
 
-## Goal
+## Supported regime
 
-VecRec wins at DP sizes larger than ~256; the goal is to make the VecRec drop-in
-faster than stock minimap2 on realistic samples in the **fair regime** (no band,
-no z-drop, no approx-max), and it does — e.g. the `exact-sv` scenario currently
-runs ~1.25x faster than stock with identical alignments. The fair regime:
+The VecRec drop-in computes the full extension DP exactly. It is run in the
+**fair regime** (no band, no z-drop, no approx-max), in which both binaries do
+the same DP work:
 
 - **no banding** — the whole R×C matrix is computed (`-r` wide);
 - **no z-drop** — `ez->zdropped` is always 0 (runs use `-z 1000000`);
@@ -26,7 +25,7 @@ runs ~1.25x faster than stock with identical alignments. The fair regime:
   (`MM_EXACT_ONLY=1`, the build default);
 - **CIGAR traceback** always produced (no score-only).
 
-Regime assertions (below) enforce this so no run can silently cheat.
+Regime assertions (below) enforce this so no run silently leaves the regime.
 
 ## Layout
 
@@ -37,7 +36,7 @@ Everything minimap2-specific lives under `end_to_end_baselines/minimap2/`:
 | `minimap2/` | committed v2.28 source (instrumentation + regime asserts baked in) |
 | `generated/` | codegen output: `vecrec_affine_kernel.h` + `ksw2_vecrec_ext.cpp` |
 | `flags.py` | compile-flag registry (name → build env bucket, applies-to, desc) |
-| `datasets.py` | dataset registry (synthetic vs real; `fair` marks VecRec's regime) |
+| `datasets.py` | dataset registry (synthetic vs real; `fair` marks datasets run in the regime above) |
 | `make_datasets.py` | regenerate the synthetic datasets |
 | `scenarios.py` | scenario registry (dataset + `-r`/`-z`/preset + defines + metrics) |
 | `run.py` | scenario-driven runner (build + parity + timing) |
@@ -268,9 +267,9 @@ frees the 2p headroom for the second gap pair.
   `ksw_extd2_sse` (generated from the `SRC` template in `generate_kernel.py`).
 
 **1-piece vs 2-piece:** `ksw_extz2_sse` (called when `q==q2 && e==e2`) uses a
-dedicated 1-piece Gotoh kernel `vecrec_ext_core_1p` (H,E1,F1 — no E2/F2 work),
-~1.6× faster per call than routing through the 2-piece core. `ksw_extd2_sse`
-uses `vecrec_ext_core_2p`. `-DVR_FORCE_2P=1` reverts to the collapse for an A/B.
+dedicated 1-piece Gotoh kernel `vecrec_ext_core_1p` (H,E1,F1 — no E2/F2 work).
+`ksw_extd2_sse` uses `vecrec_ext_core_2p`. `-DVR_FORCE_2P=1` instead routes the
+1-piece entry through the 2-piece core (`q2=q,e2=e` collapse) for an A/B.
 
 **Fields populated** in `ksw_extz_t` (everything minimap2 reads):
 - `max`/`max_q`/`max_t` — global DP maximum, not just boundary cells;
@@ -292,80 +291,37 @@ drift silently.
 **Memory:** compiled `-DHAVE_KALLOC` so all scratch (`profile`, `sym`, `Hmat`,
 `ops`, CIGAR) uses minimap2's kalloc pool, not system malloc.
 
-**Dual element width (I8 / I16) — root-caused and FIXED upstream in vec-rec.**
-`generate_kernel.py` emits both an I8 and an I16 kernel per piece-count
-(`k_vr_{1p,2p}_{i8,i16}`); the entry points dispatch by the max achievable
-score: `min(qlen,tlen)*max_match + end_bonus <= VR_I8_MAX` picks the narrow I8
-kernel (2x lanes, faster), else the always-correct I16 kernel. This was
-originally believed "verified cell-exact for both widths by `VR_CHECK=2`", but
-that verification only ever ran on datasets (map-ont, `sv-fair`) whose
-extension calls happen to be either too large for I8 to ever dispatch, or never
-contain a single gap run long/divergent enough to trigger this. Running
-`VR_CHECK=2` on the real `exact-crossspecies` dataset (asm20 scoring — cheap
-long-gap piece 2, `q2=26,e2=1`) surfaced a genuine correctness bug:
+**Dual element width (I8 / I16).** `generate_kernel.py` emits both an I8 and an
+I16 kernel per piece-count (`k_vr_{1p,2p}_{i8,i16}`). The entry points dispatch
+on an upper bound of the achievable score: when
+`min(qlen,tlen)*max_match + end_bonus <= VR_I8_MAX` (default `120`, see
+[flags.py](flags.py)) the call uses the I8 kernel, otherwise the I16 kernel.
 
-> **Root cause: both I8 and I16's internal "-infinity" sentinel was
-> `lowest(elt_type)/2`** (`-64` for int8_t, `-16384` for int16_t) — used as the
-> starting/identity value for every `SConvolveOp`/`SRecurseOp`/`SRecurseVOp`
-> Sat-variant node's `max()` reduction (`vec-rec/src/vecrec/templates/common.h`,
-> string form from `vec-rec/src/vecrec/util.py`'s `val_to_str`). A comment at
-> the definition claimed "saturating arithmetic prevents overflow" as the
-> justification for using half the range instead of the full range — true, but
-> beside the point: **overflow was never the risk.** The actual failure mode is
-> that a legitimately-computed, very-negative real score can exceed the
-> sentinel's own magnitude (easily, for I8's narrow 256-value range, or for I16
-> under an artificially unbanded huge divergent DP), at which point the
-> sentinel — meant to always *lose* the max-reduction as an identity element —
-> numerically looks *better* (less negative) than the true value and wins
-> instead, silently corrupting the result. Confirmed with a standalone repro
-> that drives the generated `k_vr_{1p,2p}_{i8,i16}` kernel structs directly
-> (bypassing minimap2 entirely) against a scalar reference: for I8, a pure gap
-> chain matched the reference up to ~col 30-39 then froze at exactly
-> `INT8_MIN/2`; for I16, an unbanded 10000×10000 divergent DP's corner score
-> came back pinned at exactly `INT16_MIN/2` instead of the true (further
-> negative) value. Reproduced identically across every candidate schedule
-> tested (0-20), for both piece counts — not a schedule-selection issue.
->
-> **Fix (in `vec-rec`, not this repo):** changed the Sat-variant sentinel from
-> `lowest(elt_type)/2` to the type's true `lowest(elt_type)` (and `max()/2` →
-> `max()`) in `vec-rec/src/vecrec/util.py`'s `val_to_str` and
-> `templates/common.h`'s `SConvolveOp`/`SRecurseOp`/`SRecurseVOp` `TropMaxSat`/
-> `TropMinSat` instantiations. `__builtin_elementwise_add_sat` cannot overflow
-> at the type's true min/max by definition (that's what "saturating" means),
-> so there is no wraparound risk from using the full range — the `/2` was
-> pure wasted headroom. Verified via the same standalone repro: this doubles
-> the safe magnitude before a real score can collide with the sentinel (I8:
-> ~64 → ~128; I16: ~16384 → ~32768), for both piece counts, with no
-> regressions (re-checked the trivial `H(0,0)=0` boundary case explicitly,
-> since an earlier inconsistent partial edit briefly appeared to break it).
->
-> **Repro recipe** (standalone, no minimap2 needed): instantiate `k_vr_2p_i8`
-> (or `k_vr_1p_i8`/`_i16` variants) directly from `generated/vecrec_affine_kernel.h`
-> with `qlen=0`, `tlen>=100`, asm20 gap params (`q=6,e=2,q2=26,e2=1`), matching
-> the `CORE_TEMPLATE` driver loop exactly (EPI/vec-lanes from the kernel's own
-> `*_vector_type`, **not** assumed — mult-pipelined schedules process more than
-> one `vec_type`-width per `run()` call). Compare the H(0,j) row (pure gap
-> chain) against a scalar `max(Ht_left+go, F+ge)` reference.
->
-> **Residual safety net (kept, thresholds widened):** doubling the safe range
-> doesn't make it unbounded — an artificially huge, unbanded, heavily-divergent
-> gap-fill (only reachable via the fair-regime's `-r`-disabled banding; real
-> minimap2 usage never lets a window grow this large) can still exceed even
-> the widened range. `VR_I8_SAFE_MAG`/`VR_I16_SAFE_MAG` in `generate_kernel.py`
-> bound the worst-case achievable magnitude (a provable upper bound: reaching
-> the DP corner is always achievable via `min(qlen,tlen)` diagonal steps +
-> `|qlen-tlen|` gap steps, so the true optimum is never worse than that one
-> concrete path) and delegate to stock ksw2 — which has no such sentinel — when
-> it could approach either width's limit. `VR_I8_MAX` is back to its original
-> `120` default (I8 is genuinely fixed and re-enabled, not worked around).
+Saturating I8/I16 kernels use an internal "-infinity" sentinel as the identity
+of their `max()` reductions (`vec-rec/src/vecrec/util.py`'s `val_to_str` and the
+`TropMaxSat`/`TropMinSat` instantiations in `vec-rec/src/vecrec/templates/common.h`).
+A real score more negative than that sentinel would be silently wrong. As a
+guard, `VR_I8_SAFE_MAG` / `VR_I16_SAFE_MAG` in `generate_kernel.py` bound the
+worst-case score magnitude of a call (the DP corner is always reachable via
+`min(qlen,tlen)` diagonal steps + `|qlen-tlen|` gap steps, so the optimum is
+never worse than that path) and delegate the call to stock ksw2 when it could
+reach either width's limit. These thresholds must stay below the sentinel
+magnitude that the pinned vec-rec actually emits.
 
-**Fast path = banded static pruning (not a lossy approx-max).** VecRec is already
-row-major and tracks the DP max inline (a fused vector reduce), so unlike ksw2 it
-has no separate approximate-max mode to build. Its analog of ksw2's approx-max
-shortcut is **banded** operation (`w>0` → `seek_col` skips out-of-band columns).
-The `approx-banded` scenario compares that against stock's approx-max + default
-band; there, stock's lossy shortcut is faster (VecRec still does exact-max work).
-VecRec's win is in the exact regime (the `exact-*` scenarios).
+To check a width directly, instantiate `k_vr_2p_i8` (or the `1p` / `i16`
+variants) from `generated/vecrec_affine_kernel.h` with `qlen=0`, `tlen>=100`
+and asm20 gap parameters (`q=6,e=2,q2=26,e2=1`), drive it exactly like the
+`CORE_TEMPLATE` loop (take EPI/vector lanes from the kernel's own
+`*_vector_type`; multi-pipelined schedules process more than one `vec_type`
+width per `run()` call), and compare the H(0,j) row against a scalar
+`max(Ht_left+go, F+ge)` reference. Inside minimap2, `VR_CHECK=2` (below) checks
+every cell on real calls.
+
+**Banded mode.** VecRec tracks the DP max inline, so it has no separate
+approximate-max mode. With a band (`w>0`), `seek_col` skips out-of-band columns.
+The `approx-banded*` scenarios run stock minimap2 with approx-max + its default
+band against the VecRec drop-in in banded mode; the `exact-*` scenarios use the
+fair regime above.
 
 **Known limitation — no z-drop:** extension calls are correct without it (full
 band computed, true optimum returned). Gap-fill calls without z-drop won't split
@@ -382,14 +338,14 @@ Pass via `VECREC_EXTRA_DEFS` (forwarded by `build_minimap2.sh`). Compile-time, s
 
 | Flag | Effect | Correct? |
 |------|--------|----------|
-| `VR_FORCE_2P=1` | Route the 1-piece entry through the 2-piece core (old `q2=q,e2=e` collapse). A/B the dedicated-1-piece win. | yes |
+| `VR_FORCE_2P=1` | Route the 1-piece entry through the 2-piece core (`q2=q,e2=e` collapse), for an A/B against the dedicated 1-piece kernel. | yes |
 | `VR_NO_TRACEBACK=1` | Skip traceback; emit trivial CIGAR. Isolates traceback cost. | no (timing only) |
 | `VR_DUMMY_PROFILE=1` | Constant score profile, skips the O(m·tlen) build. Isolates profile-build cost. | no (timing only) |
 | `VR_NO_HSTORE=1` | Skip the per-chunk `memcpy` into `Hmat`. Isolates H store traffic. Implies `VR_NO_TRACEBACK`. | no (timing only) |
 | `VR_NO_ENDPOINT_SCAN=1` | Skip mqe/mte last-row / last-column scans. | no (timing only) |
 | `VR_CHECK=1` | After each call, recompute with an independent scalar int32 reference DP; assert corner + global max match. | yes (gate) |
 | `VR_CHECK=2` | As `=1`, plus compare every `Hmat` cell to a full int32 reference matrix. Strongest; O(N) extra memory. | yes (gate) |
-| `VR_I8_MAX=N` | Max-score threshold for the I8/I16 dispatch: a call uses the narrow I8 kernel when `min(qlen,tlen)*max_match + end_bonus <= N` (**default 0 = disabled**, see the I8 bug writeup above). Nonzero **only** for reproducing/bisecting the known I8 gap-length bug — never for a real perf run. | **NO — known-broken past ~30-40bp gaps, any N** |
+| `VR_I8_MAX=N` | Max-score threshold for the I8/I16 dispatch: a call uses the I8 kernel when `min(qlen,tlen)*max_match + end_bonus <= N` (default `120`; `0` disables I8). See "Dual element width" above. | yes |
 
 ```bash
 VECREC_EXTRA_DEFS="-DVR_NO_TRACEBACK=1 -DVR_DUMMY_PROFILE=1" \
@@ -406,8 +362,7 @@ regime asserts (banding / score-only / z-drop) stay active.
 1-piece, dual-affine for 2-piece — rolling two rows, no SIMD, no difference
 encoding) runs alongside the VecRec DP on every real call and `assert(0)`s on
 mismatch, dumping qlen/tlen/expected/got. It catches encoding/codegen bugs the
-SIMD path could share. Roughly doubles per-call work — correctness gate only,
-never a perf run.
+SIMD path could share. Correctness gate only; do not use it for timing runs.
 
 ## Compile flags shared by both binaries (align.c / ksw2)
 
@@ -431,7 +386,7 @@ MM_DEFS="-DMM_EXACT_ONLY=0"  bash end_to_end_baselines/scripts/build_minimap2.sh
 | Env | Effect |
 |-----|--------|
 | `DEBUG=1` | `-O0 -g` binaries with a `_debug` suffix. |
-| `VECREC_MAX_BITS=256\|512` | Vector width (epi≈32 vs 64). 256 best for map-ont segments. |
+| `VECREC_MAX_BITS=256\|512` | Vector width (epi≈32 vs 64). |
 | `ZLIB_DIR=<dir>` | Local zlib for hosts without dev headers. |
 | `VECREC_EXTRA_DEFS="-DVR_*"` | VecRec-wrapper ablation switches (above). |
 | `VECREC_UNSAFE=1` | Disable minimap2's CIGAR-span asserts (auto-set for timing-only `VR_*`). |
@@ -460,7 +415,7 @@ markers live in `ksw2_extd2_sse.c` → `mm_ksw_setup_ns` / `mm_ksw_dp_ns` /
 
 ## Always-on assertions (both builds, not gated by timing)
 
-Enforce the drop-in regime so no run can silently cheat (no `-DNDEBUG`):
+Enforce the drop-in regime so no run silently leaves it (no `-DNDEBUG`):
 
 - not score-only (`!(flag & KSW_EZ_SCORE_ONLY)`);
 - band inactive (`w <= 0 || w >= max(qlen,tlen)-1`), plus a per-anti-diagonal
@@ -523,12 +478,11 @@ VECREC_EXTRA_DEFS="-DVR_CHECK=2" bash end_to_end_baselines/scripts/build_minimap
 bin/minimap2_vecrec -ax map-ont -t1 --secondary=no -z 1000000 $MT $READS >/dev/null
 ```
 
-## Thread sweep (MUST use timing-OFF binaries)
+## Thread sweep (use timing-OFF binaries)
 
-Timing-ON binaries have contended counters that throttle stock scaling and
-fabricate a false VecRec win. Build with timing OFF (the default), wall-clock,
-min-of-5, and prefer `mt_reads_e3` (1000 reads) over `mt_reads` (200) for stable
-scaling numbers.
+`VECREC_PHASE_TIMING` builds share atomic counters across threads (see above),
+so multi-threaded timing runs must use binaries built with timing OFF (the
+default). `mt_reads_e3` (1000 reads) is a larger alternative to `mt_reads` (200).
 
 ## Scope check
 

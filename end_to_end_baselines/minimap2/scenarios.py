@@ -63,13 +63,6 @@ SCENARIOS: dict[str, Scenario] = {
         metrics=("timing",),
         desc="Real cross-species (E. coli vs Salmonella), asm20, exact vs exact.",
     ),
-    "exact-ecoli-ultralong": Scenario(
-        name="exact-ecoli-ultralong",
-        dataset="ecoli-ultralong-real",
-        metrics=("parity", "timing"),
-        desc="Real ultra-long ONT E. coli reads vs real E. coli K-12 reference, "
-             "exact vs exact.",
-    ),
     # ── Scenario 1b: exact (VecRec) vs approx-max only (stock), no banding ────
     # Isolates the approx-max shortcut alone, decoupled from banding (band
     # stays wide, i.e. off). Gap-fill calls never set KSW_EZ_EXTZ_ONLY, so in
@@ -130,15 +123,6 @@ SCENARIOS: dict[str, Scenario] = {
         desc="Same as approx-banded, on the real cross-species (asm20) dataset "
              "instead of sv-fair.",
     ),
-    "approx-banded-ecoli-ultralong": Scenario(
-        name="approx-banded-ecoli-ultralong",
-        dataset="ecoli-ultralong-real",
-        bw=None,
-        defines=["MM_EXACT_ONLY=0"],
-        metrics=("timing",),
-        desc="Same as approx-banded, on real ultra-long ONT E. coli reads vs "
-             "the real E. coli K-12 reference.",
-    ),
     # ── 3-tier real-data ablation: no-approx | static-approx | dynamic-approx ─
     # Same dataset, three regimes of increasing "shortcut-taking" by stock:
     #   no-approx:      no band, no approx-max, no z-drop (both binaries exact)
@@ -149,51 +133,6 @@ SCENARIOS: dict[str, Scenario] = {
     #                    ksw2_extd2_sse.c -- done; VecRec has no z-drop mechanism
     #                    so it behaves identically to static-approx here, while
     #                    stock gets to actually exploit the early-exit).
-    # These no longer force VR_I8_MAX=0: the I8/I16 sentinel bug that made I8
-    # unsafe (see flags.py's VR_I8_MAX entry / CLAUDE.md's "Dual element
-    # width" section) was root-caused and fixed upstream in vec-rec; I8 is
-    # back at its default (120) and genuinely correct. NOTE: the "no-approx"
-    # tier's wide `-r 100000,100000` can still push a call's *worst-case*
-    # achievable magnitude (see VR_I8_SAFE_MAG/VR_I16_SAFE_MAG in
-    # generate_kernel.py) past what even the widened I16 sentinel can safely
-    # represent -- when that happens VecRec's own wrapper delegates that call
-    # to stock ksw2. This is correct behavior (not a bug), but it means
-    # datasets with large, genuinely divergent gap-fills under the unbanded
-    # "no-approx" regime (real cross-species / same-species strain
-    # comparisons especially) can see the no-approx speedup drop or invert,
-    # because VecRec is silently running stock's code for its biggest,
-    # would-have-won-most calls. Numbers in this file's history / the
-    # run-minimap2-approx-ablation skill may be stale if vec-rec's kernel has
-    # changed since -- always treat a fresh `--rebuild` run as authoritative.
-    "ablation-noapprox-ecoli-ultralong": Scenario(
-        name="ablation-noapprox-ecoli-ultralong",
-        dataset="ecoli-ultralong-real",
-        defines=[],
-        metrics=("parity", "timing"),
-        desc="Tier 1/3: no band, no approx-max, no z-drop. Both binaries exact.",
-    ),
-    "ablation-staticapprox-ecoli-ultralong": Scenario(
-        name="ablation-staticapprox-ecoli-ultralong",
-        dataset="ecoli-ultralong-real",
-        bw=None,                       # real default band (map-ont preset)
-        defines=["MM_EXACT_ONLY=0"],
-        metrics=("timing",),
-        desc="Tier 2/3: real default band + stock approx-max; z-drop still OFF. "
-             "VecRec's banded static-pruning path vs stock's approx-max+band.",
-    ),
-    "ablation-dynamicapprox-ecoli-ultralong": Scenario(
-        name="ablation-dynamicapprox-ecoli-ultralong",
-        dataset="ecoli-ultralong-real",
-        bw=None,                       # real default band
-        zdrop=None,                    # real default z-drop (map-ont: 400/200) -- CAN fire
-        defines=["MM_EXACT_ONLY=0"],
-        metrics=("timing",),
-        desc="Tier 3/3: real default band + approx-max + real default z-drop "
-             "(actually allowed to fire for stock). VecRec has no z-drop "
-             "mechanism so it behaves like static-approx here -- this measures "
-             "the cost of that missing capability against stock's full "
-             "real-world shortcut set.",
-    ),
     "ablation-noapprox-ecoli-strains": Scenario(
         name="ablation-noapprox-ecoli-strains",
         dataset="ecoli-strains-real",
@@ -355,10 +294,7 @@ SCENARIOS: dict[str, Scenario] = {
         metrics=("timing",),
         desc="Tier 3/3 on real cross-species, asm20 real default band + z-drop.",
     ),
-    # ── New map-ont candidates: exact-DP win + approx fidelity cost ───────────
-    # Selected to clone the two wins (ecoli-ultralong / ecoli-strains map-ont):
-    # same-species or same-organism, map-ont preset, real error or ~1-2% strain
-    # divergence with islands. Avoid HiFi / MTB-like clonal / cross-species asm*.
+    # ── map-ont, full-run ultra-long subsample ───────────────────────────────
     "ablation-noapprox-ecoli-ultralong-full": Scenario(
         name="ablation-noapprox-ecoli-ultralong-full",
         dataset="ecoli-ultralong-full",
