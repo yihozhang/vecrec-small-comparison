@@ -40,13 +40,6 @@ foreach(lib seqan3 parasail ksw2 ssw edlib wfa2)
   endif()
 endforeach()
 
-# Hand-written dilated NW is NEON-only.
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
-  add_subdirectory(handwritten_nw)
-else()
-  message(STATUS "baselines: skipping handwritten_nw (ARM/NEON only)")
-endif()
-
 # HMMER lives under hmmer-3.4/ and is built into static libs by scripts/build_hmmer.sh;
 # enable the profile-HMM Viterbi driver only once those libs exist.
 if(EXISTS "${THIRD_PARTY}/hmmer-3.4/src/libhmmer.a" AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/hmmer/CMakeLists.txt")
