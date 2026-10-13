@@ -1126,8 +1126,13 @@ static void @NM@(
 #endif
 
     // A row-tiled kernel may evaluate up to RPI-1 padded rows in its last
-    // block; give ProfileSignal2D a zero-filled halo for those reads.
-    int *sym = static_cast<int*>(kcalloc(km, static_cast<std::size_t>(R + RPI + 1), sizeof(int)));
+    // block, and the sweep below calls reset_and_next_row() RPI times after
+    // EVERY block, including the last: the ProfileSignal2D anchored at block
+    // row RPI-1 then reads sym[] up to index (RPI-1) + RPI*ceil(R/RPI)
+    // <= R + 2*RPI - 2. Give it a zero-filled halo of 2*RPI entries; a
+    // shorter halo (R+RPI+1) over-read by up to RPI-1 ints and segfaulted
+    // whenever the buffer happened to end on a page boundary (seen on macOS).
+    int *sym = static_cast<int*>(kcalloc(km, static_cast<std::size_t>(R + 2 * RPI), sizeof(int)));
     for (int i = 0; i < qlen; ++i) sym[i + 1] = static_cast<int>(query[i]);
 
     // H matrix, TIGHT stride C (padding cols [C,phys_w) are never read).
