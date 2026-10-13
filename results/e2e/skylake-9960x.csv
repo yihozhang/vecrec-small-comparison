@@ -1,4 +1,4 @@
 dataset,scenario,dataset_name,preset,reps,original_ms,vecrec_ms,speedup,original_alns,vecrec_alns,schedule_2p_i16,schedule_2p_i8,schedule_1p_i16,schedule_1p_i8
-ecoli-ultralong,ablation-noapprox-ecoli-ultralong-full,ecoli-ultralong-full,map-ont,5,88017.38586649299,88908.24050456285,0.9899800667180659,1125,1108,k14/m4/r4,k11/m4/r4,k4/m2/r2,k8/m2/r2
-ecoli-strains,ablation-noapprox-ecoli-strains-mapont,ecoli-strains-real,map-ont,5,7701.578438282013,7729.014921933413,0.9964501965737522,182,183,k14/m4/r4,k11/m4/r4,k4/m2/r2,k8/m2/r2
-pa-strains,ablation-noapprox-pa-strains,pa-strains-real,map-ont,5,3016.0140618681908,3236.9718439877033,0.9317393561732964,110,110,k14/m4/r4,k11/m4/r4,k4/m2/r2,k8/m2/r2
+ecoli-ultralong,ablation-noapprox-ecoli-ultralong-full,ecoli-ultralong-full,map-ont,5,93395.54801955819,94469.86795216799,0.988627909026466,1125,1125,k15/m4/r4,k9/m4/r4,k4/m2/r2,k7/m2/r2
+ecoli-strains,ablation-noapprox-ecoli-strains-mapont,ecoli-strains-real,map-ont,5,8477.782376110554,8681.352630257607,0.9765508598927847,182,182,k15/m4/r4,k9/m4/r4,k4/m2/r2,k7/m2/r2
+pa-strains,ablation-noapprox-pa-strains,pa-strains-real,map-ont,5,3083.4854170680046,3349.972013384104,0.9204510977251725,110,110,k15/m4/r4,k9/m4/r4,k4/m2/r2,k7/m2/r2
