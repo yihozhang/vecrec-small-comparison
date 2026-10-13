@@ -3,7 +3,7 @@
 #   bin/minimap2_original  — stock ksw2 extension
 #   bin/minimap2_vecrec    — vecrec banded affine extension (USE_VECREC)
 #
-# Architecture-aware: detects ARM (NEON) vs x86 (SSE) automatically.
+# Architecture-aware: x86 (SSE) or arm64 (NEON via sse2neon), picked by uname -m.
 # Requires: git, make, clang++, ar (all standard on macOS / Linux).
 set -euo pipefail
 
@@ -19,19 +19,36 @@ if [ ! -d "$MM2" ]; then
     exit 1
 fi
 
-# ── 2. minimap2 build config (x86_64 only; ARM/NEON is not a target) ──────────
+# ── 2. minimap2 build config (x86_64 SSE or arm64 NEON via sse2neon) ─────────
 # Only the AFFINE extension (extz2/extd2) is replaced by VecRec. ksw2's original
 # SPLICE kernel (exts2) is kept so splice/RNA presets are unchanged.
-# On x86 ksw2_dispatch.o defines ALL THREE public symbols (extz2/extd2/exts2),
-# so it cannot coexist with the VecRec extz2/extd2 (duplicate symbols). We
-# therefore remove every original ext object + the dispatcher, and rebuild a
-# standalone non-dispatch exts2 object that exports the public ksw_exts2_sse.
-echo "Architecture: x86_64"
-MAKE_FLAGS=""
-EXT_OBJS="ksw2_extz2_sse41.o ksw2_extd2_sse41.o ksw2_exts2_sse41.o \
-          ksw2_extz2_sse2.o ksw2_extd2_sse2.o ksw2_exts2_sse2.o \
-          ksw2_dispatch.o"
-NEED_EXTS2_REBUILD=1
+# x86: ksw2_dispatch.o defines ALL THREE public symbols (extz2/extd2/exts2),
+#   so it cannot coexist with the VecRec extz2/extd2 (duplicate symbols). We
+#   therefore remove every original ext object + the dispatcher, and rebuild a
+#   standalone non-dispatch exts2 object that exports the public ksw_exts2_sse.
+# arm64: minimap2's Makefile (aarch64=1) builds the three *_neon.o objects
+#   non-dispatch through sse2neon, so we drop only the two affine ones and keep
+#   ksw2_exts2_neon.o as is. ORIG_CC_FLAGS mirrors the Makefile's NEON recipe
+#   for the renamed stock affine objects compiled in step 4b''.
+ARCH="$(uname -m)"
+case "$ARCH" in
+    arm64|aarch64)
+        echo "Architecture: ${ARCH} (NEON via sse2neon)"
+        MAKE_FLAGS="aarch64=1"
+        EXT_OBJS="ksw2_extz2_neon.o ksw2_extd2_neon.o"
+        NEED_EXTS2_REBUILD=0
+        ORIG_CC_FLAGS="-DKSW_SSE2_ONLY -D__SSE2__ -I$MM2/sse2neon -D_FILE_OFFSET_BITS=64 -fsigned-char"
+        ;;
+    *)
+        echo "Architecture: ${ARCH} (SSE)"
+        MAKE_FLAGS=""
+        EXT_OBJS="ksw2_extz2_sse41.o ksw2_extd2_sse41.o ksw2_exts2_sse41.o \
+                  ksw2_extz2_sse2.o ksw2_extd2_sse2.o ksw2_exts2_sse2.o \
+                  ksw2_dispatch.o"
+        NEED_EXTS2_REBUILD=1
+        ORIG_CC_FLAGS="-msse2 -DKSW_SSE2_ONLY"
+        ;;
+esac
 # Link the C++ runtime used by clang++ for the VecRec wrapper.
 case "$(uname -s)" in
     Darwin) CXXRT="-lc++" ;;
@@ -180,7 +197,6 @@ fi
 echo "Compiling renamed ksw2 affine objects (approx-max fallback)..."
 EXTD2_ORIG_OBJ="$MM2/ksw2_extd2_orig.o"
 EXTZ2_ORIG_OBJ="$MM2/ksw2_extz2_orig.o"
-ORIG_CC_FLAGS="-msse2 -DKSW_SSE2_ONLY"
 "${CC:-cc}" ${EXTS2_OPT} ${ORIG_CC_FLAGS} -DHAVE_KALLOC ${PHASE_DEF} -Dksw_extd2_sse=ksw_extd2_sse_orig \
     -I "$MM2" ${ZLIB_INC} -c "$MM2/ksw2_extd2_sse.c" -o "$EXTD2_ORIG_OBJ"
 "${CC:-cc}" ${EXTS2_OPT} ${ORIG_CC_FLAGS} -DHAVE_KALLOC ${PHASE_DEF} -Dksw_extz2_sse=ksw_extz2_sse_orig \
