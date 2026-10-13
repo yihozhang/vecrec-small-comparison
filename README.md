@@ -1,48 +1,43 @@
 # VecRec — Artifact Evaluation
 
-This repository reproduces the evaluation of the VecRec paper. VecRec itself is
-the Python library + C++ template header pinned as the git submodule
-[`vec-rec/`](vec-rec); everything else here is benchmarking harness.
+This repository reproduces the evaluation of the VecRec paper. 
+In this paper, we build a compiler for vectorizing linear recurrences over arbitrary semirings
+ and demonstrated significant speedups across various domains.
+In this artifact evaluation, we provide the code and scripts to reproduce the results in the paper.
+VecRec itself is implemented as a Python library that generates a C++ kernel file that can be imported by other C++ programs.
+It is pinned as the git submodule [`vec-rec/`](vec-rec).
 
 | Paper table | Group name | What is measured |
 |---|---|---|
-| Table 1 | `wild` | 12 "recurrences in the wild" (signal processing / numerics): VecRec kernel vs a hand-written serial C++ loop vs VecRec with vectorization disabled |
-| Table 2 | `leetcode` | 12 LeetCode dynamic-programming recurrences, same three implementations |
-| Table 3 | `bio` | Edit distance / Needleman–Wunsch / Smith–Waterman / affine gap (2048×2048): VecRec vs parasail, ksw2, seqan3, edlib, WFA2 |
-| Table 4 | `e2e` | minimap2 end-to-end on three real ONT datasets, stock ksw2 vs the VecRec drop-in kernel |
-| Table 5 | `reptile` | Smith–Waterman: REPTILE-style scalar tiling vs VecRec |
+| Table 1 | `wild` | 12 recurrences in the wild (e.g., signal processing / numerics). The baselines are hand-written serial C++ loops and VecRec kernels without vectorization |
+| Table 2 | `leetcode` | 12 LeetCode dynamic-programming recurrences. The baselines are hand-written serial C++ loops and VecRec kernels without vectorization. |
+| Table 3 | `bio` | Sequence alignment algorithms, including edit distance, Needleman–Wunsch, Smith–Waterman, and affine gap. The baselines include parasail, ksw2, seqan3, edlib, WFA2 |
+| Table 4 | `e2e` | End-to-end performance comparison on the three real ONT datasets. The baseline is the unmodified ksw2 implementation. |
+| Table 5 | `reptile` | We compare with REPTILE, a recent tiling compiler for recurrences, on the Smith–Waterman algorithm. |
 
-Two commands drive everything:
+To run this artifact, you can use the following commands:
 
 ```bash
 uv run bench exec <group>     # run the experiments behind one table  (results/<group>/<host>.csv)
 uv run fig <group>            # render that table as LaTeX + Markdown  (figures/<group>.{tex,md})
 ```
 
-The paper reports every table on three machines (Intel Skylake i9-9960X, AMD
-Zen 5 Threadripper 9970X, Apple M2). The scripts run on **one** machine and
-produce a one-machine table; `fig` lays several machines' result files side by
-side when given more than one, which is how the paper's tables were assembled.
-The paper's own numbers are transcribed under [`results/paper/`](results/paper)
+In the paper, we reported the benchmark results on three microarchitecutres, including  Intel Skylake (i9-9960X), AMD Zen 5 (Threadripper 9970X), Apple M2. You may see different performance characteristics on a different micro-architecture.
+
+The script provided in this repository can be used to obtain result on one machine, but you can use `fig` to assemble a table with results from multiple machines side by side.
+
+TODO: The paper's own numbers are transcribed under [`results/paper/`](results/paper)
 so you can render them next to your reproduction (see "Comparing with the paper").
 
 ## 1. Requirements
 
-* Linux x86-64 or macOS/arm64. A machine with AVX2/AVX-512 (x86) or NEON (Apple
-  Silicon). All experiments are single-threaded.
-* **clang ≥ 17** as `clang++` on `PATH` (VecRec kernels use clang's
-  `ext_vector_type` and elementwise builtins; GCC does not work. seqan3 also
-  needs clang ≥ 17). On macOS use Homebrew LLVM (`brew install llvm`), not Apple's.
+* Linux x86-64 or macOS/arm64. A machine with a fairly recent vectorization instruction set (e.g.m AVX-512 or NEON). All experiments are single-threaded. We have not tested this artifact on a machine with the AVX2 instruction set only, but we expect the observed speedup to be slightly smaller. On Linux, you can use `lspu` or `cat /proc/cpuinfo` to view the supported instruction set.
+* **clang ≥ 17** on `PATH` (VecRec kernels use clang's vector extensions. seqan3 also needs clang ≥ 17). On macOS use Homebrew LLVM (`brew install llvm`), not Apple's.
 * [`uv`](https://docs.astral.sh/uv/) (Python ≥ 3.10 is fetched by uv if needed).
 * `git`, `make`, `cmake ≥ 3.20`, `curl`, `gunzip`, and zlib development headers
-  (`zlib1g-dev` on Debian/Ubuntu; present by default on macOS) — needed by the
+  (`zlib1g-dev` on Debian/Ubuntu; present by default on macOS). This is needed by the
   third-party aligners in Tables 3–5.
-* Network access the first time Tables 3–5 are set up: the library baselines are
-  cloned from GitHub at pinned versions and the Table 4 datasets are downloaded
-  from NCBI / GitHub (≈ 60 MB).
-* Disk: ≈ 2 GB (third-party clones + builds).
-
-No Python packages beyond `numpy` and the vendored `vecrec` are used.
+* Disk: ≈ 5 GB (third-party clones + builds).
 
 ## 2. Setup
 
@@ -54,16 +49,43 @@ uv run bench list                # sanity check: prints groups and the host tag
 ```
 
 If you cloned without `--recursive`, run `git submodule update --init` first.
-`vec-rec/` must be at the commit this repository pins (`git ls-tree HEAD vec-rec`);
-`bench` refuses to run otherwise, because VecRec's default branch does not yet
-contain the banded-kernel support the Table 3-5 harnesses use.
 
-Tables 1–2 need nothing else. Tables 3–5 need the C++ baselines and datasets;
-`bench exec` fetches/builds them on demand, or do it explicitly:
+## 3. Kicking the tire
+
+To sanity check, you can run the following command to obtain the run time for a single benchmark:
 
 ```bash
-uv run bench setup bio           # clone + build parasail, ksw2, seqan3, edlib, WFA2  (~10 min)
-uv run bench setup e2e           # download the 3 ONT datasets + build minimap2 (stock & VecRec)
+uv run bench exec wild --only second-order-low-pass
+```
+
+You should see the detailed statistics of the second-order low-pass filter comparison. Here is an example:
+
+```
+===== bench exec wild (Table 1) on host 'griffin' =====
+
+[gen] second-order-low-pass: reusing generated/second_order_low_pass.h
+make: 'build/second_order_low_pass' is up to date.
+
+==== second-order-low-pass ====
+  elements                : 4194304
+  serial          (best)  :     5541.2 us    0.757 Gelem/s
+  VecRec baseline (best)  :     7904.4 us    0.531 Gelem/s
+  VecRec optimized(best)  :     1210.5 us    3.465 Gelem/s
+  speedup  opt  vs serial : 4.58x
+  speedup  opt  vs base   : 6.53x
+  speedup  base vs serial : 0.70x
+  max abs err base / opt  : 1.764e-05 / 2.289e-05
+  correctness             : PASS
+RESULT,second-order-low-pass,4194304,5541.183,7904.447,1210.477,4.5777,6.5300,0.7010,1.764e-05,2.289e-05,PASS
+
+benchmark                                 serial us    base us     opt us  opt/ser  opt/base  status
+second-order-low-pass                        5541.2     7904.4     1210.5    4.58x     6.53x    PASS
+```
+
+To get a sense of how to generate recurrence kernels using VecRec, you can take a look at programs under `vec-rec/benchmarks/`. To run a kernel there, you can use the command `uv run vec-rec/benchmarks/run_all.py KERNEL_NAME`. For example,
+
+```
+uv run vec-rec/benchmarks/run_all.py first-order-high-pass
 ```
 
 ## 3. Running
@@ -77,30 +99,24 @@ uv run bench exec reptile        # Table 5 (meaningful on Apple Silicon only, se
 uv run bench exec all            # everything
 ```
 
-Results land in `results/<group>/<host>.csv` (`.json` for `reptile`), where
-`<host>` is `--host NAME`, else `$AE_HOST`, else the hostname. Re-running a
-group overwrites that file; partial results are flushed after every benchmark.
+Raw results will be saved at `results/<group>/<host>.csv` (`.json` for `reptile`), where
+`<host>` is obtained from `--host NAME`, `$AE_HOST`, or the hostname by default. Re-running a group overwrites previous results.
 
 Useful flags:
 
-* `--quick` — smoke-test settings (tiny sizes, few iterations). Finishes in
-  minutes and exercises every code path, but the numbers are **not** paper-grade.
 * `--only NAME` — one benchmark (`wild`/`leetcode`: registry name such as
   `second-order-low-pass`; `bio`: case name such as `affine-gap`;
   `e2e`: dataset label such as `pa-strains`). Repeatable.
-* `--regen` (`wild`/`leetcode`) — redo the VecRec schedule search instead of
-  reusing `generated/<kernel>.h` from a previous run. The search is the slow
-  part (it compiles and times every candidate schedule); the headers are cached
-  per machine because the best schedule is machine-specific.
+* `--regen` (`wild`/`leetcode`) — redo the VecRec schedule search to find the best-performaning kernel instead of
+  reusing `generated/<kernel>.h` from a previous run.
 * `--reps N` (`e2e`, `reptile`), `--size N` (`bio`), `--iters/--warmup` (`wild`/`leetcode`).
+* `--quick` — smoke-test settings (tiny sizes, few iterations). Finishes in
+  minutes and exercises every code path.
 
-To start over, `uv run bench clean <group>` deletes what that group rebuilds on
-demand (kernel headers and binaries for `wild`/`leetcode`, which forces a new
-schedule search; library drivers for `bio`; the minimap2 binaries and generated
-kernel for `e2e`; `Reptile/build/`). `--deep` also removes `third_party/` and the
+To start over, run `uv run bench clean <group>` to delete build cache. The flag `--deep` also removes `third_party/` and the
 downloaded datasets. Result files under `results/` are never touched.
 
-Then render:
+To render a table from an experiment:
 
 ```bash
 uv run fig wild                  # prints a Markdown table, writes figures/wild.{tex,md}
@@ -113,18 +129,6 @@ file stem). To choose files and labels explicitly:
 ```bash
 uv run fig bio --source "Zen 5=results/bio/zen5.csv" --source "Apple M2=results/bio/m2.csv"
 ```
-
-### Comparing with the paper
-
-```bash
-uv run fig wild --source "Skylake (paper)=results/paper/wild-skylake.csv" \
-                --source "Zen 5 (paper)=results/paper/wild-zen5.csv" \
-                --source "$(hostname)=results/wild/$(hostname).csv"
-```
-
-`results/paper/` holds the paper's tables re-encoded in the result-file schema
-(`wild-*`, `leetcode-*`, `bio-*` for the three machines, `e2e-paper.csv`,
-`reptile-m2.json`); rendering them alone reproduces the paper's tables verbatim.
 
 ## 4. What each group does, and what to expect
 
@@ -220,57 +224,17 @@ vec-rec/                 VecRec (git submodule, pinned)
 generated/ build/ bin/ third_party/   gitignored build products
 ```
 
-## 6. Known deviations and caveats
+## 6. Other caveats
 
-* **Single machine vs three.** Each run gives one column group. The paper's
-  claims are about relative speedups per machine, which is what one machine
-  reproduces.
-* **Table 5 is Apple-Silicon-specific.** The paper's numbers are from the M2.
-  The scripts run on x86 too, but the loop unrolling that makes VecRec's
-  Smith–Waterman kernel fast relies on NEON's 32 vector registers; on x86 the
-  gap between VecRec and the tiled scalar code is much smaller.
-* **Schedule search is stochastic in time.** `wild`/`leetcode`/`bio` pick the
-  fastest schedule by measurement, so a noisy machine can pick a slightly
-  different schedule. Run on an idle machine; `--regen` repeats the search.
-* **Table 4 absolute times** depend on the dataset download being identical
-  (the fetch scripts pin NCBI accessions and a fixed GitHub file) and on
-  single-thread CPU speed; the paper's machine for this table is not one of the
-  three above (see `08-eval.tex`).
-* **Hand-edited tables.** During the camera-ready the paper's tables were
-  touched up by hand (row order, names). `fig` reproduces that final layout;
-  the underlying result files are what the scripts produce.
-* **ksw2 baselines in Table 3 are faster than in the paper on x86.** The
-  paper's x86 ksw2 numbers (~360 / ~580 Melem/s) were measured with the ksw2
-  driver built as `KSW_SSE2_ONLY` (the SSE2 emulation path). The driver was
-  later changed to a fair build (`-march=native`, SSE4.1 fast path), which is
-  what this artifact ships; on x86 ksw2 is then 3-6x faster than in the paper.
-  The paper's `ksw2_extf2_sse` row is not reproduced: in the current harness
-  that kernel is score-only (no traceback), which is not comparable to the
-  traceback-timed implementations in the rest of the table, so it is disabled.
-  The Apple M2 column is unaffected (ksw2 runs through sse2neon there).
-* **Table 4 does not reproduce on every x86 machine.** On the Zen 4 machine
-  used for the reference run in §7 the VecRec drop-in is *slower* than stock
-  ksw2 (0.84-0.90x on all three datasets) although the stock times match the
-  paper's. The cause is the kernel, not the harness: minimap2's gap-fill calls
-  are ~225x225 with maximum scores above the int8 dispatch threshold, so they
-  run VecRec's int16 kernel, and on this CPU that kernel is ~1.4x slower per
-  call than ksw2's int8 difference-encoded `extd2` kernel (isolated
-  `bio_kernel_evals/cases/extension_dual_affine.py` at 256x256: ksw2 27 us,
-  VecRec int16 37 us, VecRec int8 28 us; the e2e per-call phase timers agree).
-  Sweeping the drop-in schedule / vector width (`VECREC_SCHED_2P`,
-  `VECREC_MULT_2P`, `VECREC_MAX_BITS`) does not change this; neither does the
-  compiler (clang 20 vs 21), nor using the pre-merge VecRec revision. The
-  speedups in the paper were measured on an AVX2 (Zen 3) machine where the
-  int16 kernel beats ksw2 at these sizes.
-* **Table 4's `ecoli-ultralong` row** uses the 500 longest reads of the full
-  Loman/Quick ultra-long run (`ecoli-ultralong-full`, a 5 GB download that is
-  reduced to a 10 MB subsample); the 371-read `ecoli-ultralong-real` subset is
-  ~10x smaller and runs in ~6 s instead of ~60 s.
-
-## 7. Reference run on this artifact's development machine
-
-`results/*/zen4-7985wx.*` are a complete run on an AMD Threadripper PRO 7985WX
-(Zen 4, AVX-512), clang 21, with the pinned VecRec. They are not one of the
-paper's three machines; they are provided as a known-good example of the
-output. Table 3 numbers from this machine agree within a few percent with an
-earlier (July 2026) run of the same harness on the same machine.
+* Make sure your machine is quiet during the evaluation to make sure the numbers are reliable.
+* Table 2: You may observe a speedup of ksw2's throughputs over what is reported in the paper, as 
+  we added the `-march=native` flag to ksw2 to make it to use the available vectorizing instruction set.
+  It still has a lower throughput than the best-performing baseline on the machines we have tested, however.
+* Table 4: You may not observe a speedup depending on the machine you use. The reported speedups
+  can be reproduced on a machine with Zen 5 microarchitecture. We are happy to provide AE reviewers
+  access to our machine for replication.
+* Table 5: The speedup of REPTILE over VecRec can only be reproduced on a machine with Apple Silicon. 
+  This is because tiling, or loop unrolling, only improves Smith-Waterman on microarchtectures
+  with massive instruction-level parallelism, and on microarchitectures like Zen 5 the kernel
+  is already register pressured, so unrolling does not help. However, you should be able to observe
+  the speedup of VecRec over REPTILE and Untiled baselines.
