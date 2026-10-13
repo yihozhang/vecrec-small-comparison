@@ -1,259 +1,259 @@
 display_name,case,rows,cols,seed,elements,impl,kind,work_mode,median_us,gcups,speedup_vs_best,correct,score,note
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,1480556.8475,,1.0000,True,1069.0,
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k0,vecrec,traceback,3339.6770,,0.1041,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k1,vecrec,traceback,3396.8190,,0.1024,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k2,vecrec,traceback,2398.7780,,0.1449,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k3,vecrec,traceback,1406.4105,,0.2472,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k4,vecrec,traceback,752.5760,,0.4620,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k5,vecrec,traceback,431.7255,,0.8054,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k6,vecrec,traceback,323.4750,,1.0749,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k7,vecrec,traceback,248.8055,,1.3975,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k8,vecrec,traceback,2961.0080,,0.1174,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k9,vecrec,traceback,2968.9750,,0.1171,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k10,vecrec,traceback,2175.4670,,0.1598,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k11,vecrec,traceback,1247.3220,,0.2788,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k12,vecrec,traceback,746.3310,,0.4659,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k13,vecrec,traceback,425.7260,,0.8167,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k14,vecrec,traceback,304.8860,,1.1404,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k15,vecrec,traceback,240.8185,,1.4438,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k0,vecrec,traceback,7524.0000,,0.0462,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k1,vecrec,traceback,6831.3460,,0.0509,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k2,vecrec,traceback,2134.9245,,0.1629,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k3,vecrec,traceback,1373.3800,,0.2532,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k4,vecrec,traceback,663.0490,,0.5244,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k5,vecrec,traceback,526.3645,,0.6606,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k6,vecrec,traceback,372.1045,,0.9344,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k7,vecrec,traceback,6192.0585,,0.0562,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k8,vecrec,traceback,6546.1845,,0.0531,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k9,vecrec,traceback,1997.5700,,0.1741,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k10,vecrec,traceback,1241.0430,,0.2802,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k11,vecrec,traceback,642.2170,,0.5414,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k12,vecrec,traceback,501.7925,,0.6929,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k13,vecrec,traceback,347.6960,,1.0000,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k0,vecrec,traceback,3975.0780,,0.0875,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k1,vecrec,traceback,3721.3000,,0.0934,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k2,vecrec,traceback,2232.1230,,0.1558,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k3,vecrec,traceback,1359.3340,,0.2558,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k4,vecrec,traceback,789.1920,,0.4406,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k5,vecrec,traceback,580.1975,,0.5993,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k6,vecrec,traceback,6510.6005,,0.0534,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k7,vecrec,traceback,6407.8280,,0.0543,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k8,vecrec,traceback,2072.7295,,0.1677,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k9,vecrec,traceback,1159.8635,,0.2998,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k10,vecrec,traceback,764.7750,,0.4546,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k11,vecrec,traceback,591.9105,,0.5874,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,edlib,baseline,traceback,433.6380,,0.8018,True,1069.0,score+alignment
-"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,wfa2_edit,baseline,traceback,745.5400,,0.4664,True,1069.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,1544830.8159,,1.0000,True,1524.0,
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k0,vecrec,traceback,10344.4220,,0.0325,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k1,vecrec,traceback,9834.5370,,0.0342,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k2,vecrec,traceback,2389.2830,,0.1409,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k3,vecrec,traceback,1512.7475,,0.2225,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k4,vecrec,traceback,750.4875,,0.4485,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k5,vecrec,traceback,441.2450,,0.7627,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k6,vecrec,traceback,325.1070,,1.0352,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k7,vecrec,traceback,249.0310,,1.3515,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k8,vecrec,traceback,12675.3355,,0.0266,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k9,vecrec,traceback,12454.6735,,0.0270,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k10,vecrec,traceback,2176.7630,,0.1546,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k11,vecrec,traceback,1165.5875,,0.2887,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k12,vecrec,traceback,747.4180,,0.4503,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k13,vecrec,traceback,425.9865,,0.7901,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k14,vecrec,traceback,305.7275,,1.1008,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k15,vecrec,traceback,242.0050,,1.3907,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k0,vecrec,traceback,6945.2545,,0.0485,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k1,vecrec,traceback,7048.1215,,0.0478,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k2,vecrec,traceback,2139.3010,,0.1573,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k3,vecrec,traceback,1374.5215,,0.2449,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k4,vecrec,traceback,663.7850,,0.5070,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k5,vecrec,traceback,528.1025,,0.6373,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k6,vecrec,traceback,373.2860,,0.9016,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k7,vecrec,traceback,6434.3730,,0.0523,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k8,vecrec,traceback,6832.4665,,0.0493,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k9,vecrec,traceback,1997.9750,,0.1685,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k10,vecrec,traceback,1243.6370,,0.2706,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k11,vecrec,traceback,643.5940,,0.5229,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k12,vecrec,traceback,502.9240,,0.6692,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k13,vecrec,traceback,349.3340,,0.9634,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k0,vecrec,traceback,4119.6790,,0.0817,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k1,vecrec,traceback,3838.4390,,0.0877,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k2,vecrec,traceback,2232.1025,,0.1508,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k3,vecrec,traceback,1358.1370,,0.2478,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k4,vecrec,traceback,786.1965,,0.4281,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k5,vecrec,traceback,605.3205,,0.5560,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k6,vecrec,traceback,7150.8280,,0.0471,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k7,vecrec,traceback,6688.0960,,0.0503,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k8,vecrec,traceback,2017.4895,,0.1668,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k9,vecrec,traceback,1154.6905,,0.2915,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k10,vecrec,traceback,765.7210,,0.4395,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k11,vecrec,traceback,589.4665,,0.5710,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,seqan3_nw,baseline,traceback,14529.5050,,0.0232,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_stats,baseline,traceback,19639.0070,,0.0171,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_16,baseline,traceback,1768.0125,,0.1904,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_16,baseline,traceback,1985.2105,,0.1695,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_16,baseline,traceback,725.5445,,0.4639,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_32,baseline,traceback,2561.0660,,0.1314,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_32,baseline,traceback,2639.3250,,0.1275,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_32,baseline,traceback,1369.7640,,0.2457,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_64,baseline,traceback,7876.4075,,0.0427,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_64,baseline,traceback,4164.4420,,0.0808,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_64,baseline,traceback,7409.8590,,0.0454,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_sat,baseline,traceback,1995.3810,,0.1687,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_sat,baseline,traceback,6050.5710,,0.0556,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_sat,baseline,traceback,1099.0455,,0.3062,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_8,baseline,traceback,336.5595,,1.0000,,0.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_8,baseline,traceback,4362.1095,,0.0772,,0.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_8,baseline,traceback,420.3880,,0.8006,,0.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,wfa2_nw,baseline,traceback,2840.3130,,0.1185,True,1524.0,score+alignment
-"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,ksw2_gg2_sse,baseline,traceback,1935.2040,,0.1739,True,1524.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,1492561.7483,,1.0000,True,1534.0,
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,1432623.8055,,1.0000,True,1069.0,
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k0,vecrec,traceback,3332.3825,,0.1044,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k1,vecrec,traceback,3342.6730,,0.1040,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k2,vecrec,traceback,2397.1980,,0.1451,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k3,vecrec,traceback,1509.7655,,0.2303,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k4,vecrec,traceback,750.1930,,0.4636,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k5,vecrec,traceback,440.6765,,0.7891,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k6,vecrec,traceback,324.9855,,1.0701,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k7,vecrec,traceback,249.6300,,1.3931,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k8,vecrec,traceback,2971.6630,,0.1170,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k9,vecrec,traceback,2968.2280,,0.1172,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k10,vecrec,traceback,2177.7280,,0.1597,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k11,vecrec,traceback,1246.9705,,0.2789,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k12,vecrec,traceback,747.2540,,0.4654,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k13,vecrec,traceback,424.6520,,0.8189,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k14,vecrec,traceback,305.1050,,1.1398,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i8_tb:k15,vecrec,traceback,240.8870,,1.4436,False,63.0,score+alignment; alignment re-scores to 3082 != optimum 1069
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k0,vecrec,traceback,6772.9810,,0.0513,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k1,vecrec,traceback,7231.9610,,0.0481,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k2,vecrec,traceback,2132.6900,,0.1631,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k3,vecrec,traceback,1378.0700,,0.2523,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k4,vecrec,traceback,662.4200,,0.5250,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k5,vecrec,traceback,527.7090,,0.6590,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k6,vecrec,traceback,372.4020,,0.9338,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k7,vecrec,traceback,6168.5905,,0.0564,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k8,vecrec,traceback,6662.7735,,0.0522,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k9,vecrec,traceback,1997.5885,,0.1741,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k10,vecrec,traceback,1241.5320,,0.2801,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k11,vecrec,traceback,642.7695,,0.5410,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k12,vecrec,traceback,501.4490,,0.6935,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i16_tb:k13,vecrec,traceback,347.7550,,1.0000,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k0,vecrec,traceback,3727.4750,,0.0933,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k1,vecrec,traceback,3731.0205,,0.0932,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k2,vecrec,traceback,2234.9360,,0.1556,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k3,vecrec,traceback,1358.2200,,0.2560,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k4,vecrec,traceback,787.2450,,0.4417,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k5,vecrec,traceback,601.3165,,0.5783,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k6,vecrec,traceback,6551.9450,,0.0531,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k7,vecrec,traceback,6763.9385,,0.0514,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k8,vecrec,traceback,2074.5370,,0.1676,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k9,vecrec,traceback,1161.3000,,0.2995,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k10,vecrec,traceback,764.4745,,0.4549,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,vecrec_levenshtein_i32_tb:k11,vecrec,traceback,591.0910,,0.5883,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,edlib,baseline,traceback,436.2245,,0.7972,True,1069.0,score+alignment
+"edit-distance (2048x2048, seed=0)",edit-distance,2048,2048,0,4194304,wfa2_edit,baseline,traceback,733.3475,,0.4742,True,1069.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,1382402.0214,,1.0000,True,1524.0,
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k0,vecrec,traceback,10338.0115,,0.0322,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k1,vecrec,traceback,10341.8220,,0.0322,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k2,vecrec,traceback,2396.2070,,0.1390,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k3,vecrec,traceback,1507.3625,,0.2210,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k4,vecrec,traceback,752.3115,,0.4428,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k5,vecrec,traceback,440.1210,,0.7569,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k6,vecrec,traceback,325.4360,,1.0237,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k7,vecrec,traceback,249.2545,,1.3365,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k8,vecrec,traceback,12659.5110,,0.0263,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k9,vecrec,traceback,12477.6335,,0.0267,False,125.0,score+alignment; alignment re-scores to 125 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k10,vecrec,traceback,2175.6165,,0.1531,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k11,vecrec,traceback,1247.7220,,0.2670,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k12,vecrec,traceback,747.9155,,0.4454,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k13,vecrec,traceback,424.8970,,0.7840,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k14,vecrec,traceback,306.5820,,1.0866,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i8_tb:k15,vecrec,traceback,241.5580,,1.3791,False,125.0,score+alignment; alignment re-scores to -1395 != optimum 1524
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k0,vecrec,traceback,7107.5790,,0.0469,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k1,vecrec,traceback,7421.5170,,0.0449,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k2,vecrec,traceback,2134.0780,,0.1561,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k3,vecrec,traceback,1375.6065,,0.2422,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k4,vecrec,traceback,664.1275,,0.5016,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k5,vecrec,traceback,527.4990,,0.6315,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k6,vecrec,traceback,374.0805,,0.8906,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k7,vecrec,traceback,6338.3420,,0.0526,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k8,vecrec,traceback,6616.7960,,0.0503,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k9,vecrec,traceback,1996.1325,,0.1669,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k10,vecrec,traceback,1242.5190,,0.2681,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k11,vecrec,traceback,645.8340,,0.5158,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k12,vecrec,traceback,503.2870,,0.6619,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i16_tb:k13,vecrec,traceback,349.4675,,0.9533,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k0,vecrec,traceback,4122.7200,,0.0808,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k1,vecrec,traceback,3839.3625,,0.0868,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k2,vecrec,traceback,2235.1425,,0.1490,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k3,vecrec,traceback,1355.5210,,0.2458,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k4,vecrec,traceback,786.2940,,0.4237,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k5,vecrec,traceback,602.5390,,0.5529,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k6,vecrec,traceback,6486.0220,,0.0514,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k7,vecrec,traceback,6708.7820,,0.0497,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k8,vecrec,traceback,2076.6310,,0.1604,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k9,vecrec,traceback,1160.0680,,0.2872,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k10,vecrec,traceback,766.7840,,0.4345,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,vecrec_nw_i32_tb:k11,vecrec,traceback,550.2140,,0.6055,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,seqan3_nw,baseline,traceback,14547.5360,,0.0229,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_stats,baseline,traceback,19946.6570,,0.0167,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_16,baseline,traceback,1801.5515,,0.1849,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_16,baseline,traceback,2088.4085,,0.1595,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_16,baseline,traceback,719.5620,,0.4630,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_32,baseline,traceback,2545.6355,,0.1309,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_32,baseline,traceback,2588.9720,,0.1287,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_32,baseline,traceback,1388.2160,,0.2400,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_64,baseline,traceback,7727.1640,,0.0431,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_64,baseline,traceback,4520.8710,,0.0737,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_64,baseline,traceback,7345.4175,,0.0454,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_sat,baseline,traceback,2013.7945,,0.1654,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_sat,baseline,traceback,5994.3425,,0.0556,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_sat,baseline,traceback,1110.5130,,0.3000,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_striped_8,baseline,traceback,333.1380,,1.0000,,0.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_diag_8,baseline,traceback,4117.6720,,0.0809,,0.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,parasail_nw_scan_8,baseline,traceback,420.5865,,0.7921,,0.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,wfa2_nw,baseline,traceback,2995.8415,,0.1112,True,1524.0,score+alignment
+"needleman-wunsch (2048x2048, seed=0)",needleman-wunsch,2048,2048,0,4194304,ksw2_gg2_sse,baseline,traceback,1822.0325,,0.1828,True,1524.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,1405917.1788,,1.0000,True,1534.0,
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k0,vecrec,traceback,,,,,,not built
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k1,vecrec,traceback,,,,,,not built
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k2,vecrec,traceback,5051.5735,,0.0053,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k3,vecrec,traceback,2566.7700,,0.0104,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k4,vecrec,traceback,1207.6515,,0.0222,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k5,vecrec,traceback,739.1350,,0.0362,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k6,vecrec,traceback,541.1525,,0.0495,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k7,vecrec,traceback,352.8145,,0.0759,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k2,vecrec,traceback,5051.4465,,0.0055,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k3,vecrec,traceback,2586.5285,,0.0107,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k4,vecrec,traceback,1205.1825,,0.0229,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k5,vecrec,traceback,738.4860,,0.0374,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k6,vecrec,traceback,499.8970,,0.0552,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k7,vecrec,traceback,353.2035,,0.0782,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k8,vecrec,traceback,,,,,,not built
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k9,vecrec,traceback,,,,,,not built
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k10,vecrec,traceback,3337.1475,,0.0080,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k11,vecrec,traceback,1600.3720,,0.0167,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k12,vecrec,traceback,1121.7950,,0.0239,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k13,vecrec,traceback,562.1495,,0.0476,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k14,vecrec,traceback,391.3085,,0.0684,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k15,vecrec,traceback,304.9410,,0.0878,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k10,vecrec,traceback,3223.4440,,0.0086,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k11,vecrec,traceback,1598.9830,,0.0173,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k12,vecrec,traceback,1121.3395,,0.0246,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k13,vecrec,traceback,566.6540,,0.0487,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k14,vecrec,traceback,394.0910,,0.0701,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i8_tb:k15,vecrec,traceback,303.4980,,0.0910,False,127.0,score+alignment; alignment re-scores to 127 != optimum 1534
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k0,vecrec,traceback,,,,,,not built
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k1,vecrec,traceback,,,,,,not built
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k2,vecrec,traceback,4355.9650,,0.0061,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k3,vecrec,traceback,2254.3365,,0.0119,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k4,vecrec,traceback,1425.4845,,0.0188,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k5,vecrec,traceback,909.2455,,0.0295,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k6,vecrec,traceback,595.0850,,0.0450,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k2,vecrec,traceback,4350.7830,,0.0063,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k3,vecrec,traceback,2256.5905,,0.0122,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k4,vecrec,traceback,1425.7790,,0.0194,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k5,vecrec,traceback,850.5820,,0.0325,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k6,vecrec,traceback,604.3520,,0.0457,True,1534.0,score+alignment
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k7,vecrec,traceback,,,,,,not built
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k8,vecrec,traceback,,,,,,not built
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k9,vecrec,traceback,3005.7405,,0.0089,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k10,vecrec,traceback,1680.7295,,0.0159,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k11,vecrec,traceback,1006.2830,,0.0266,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k12,vecrec,traceback,661.4010,,0.0405,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k13,vecrec,traceback,477.8610,,0.0560,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k9,vecrec,traceback,2995.5920,,0.0092,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k10,vecrec,traceback,1694.9495,,0.0163,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k11,vecrec,traceback,1045.1835,,0.0264,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k12,vecrec,traceback,666.9470,,0.0414,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i16_tb:k13,vecrec,traceback,514.6150,,0.0537,True,1534.0,score+alignment
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k0,vecrec,traceback,,,,,,not built
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k1,vecrec,traceback,,,,,,not built
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k2,vecrec,traceback,3982.1885,,0.0067,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k3,vecrec,traceback,2657.1975,,0.0101,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k4,vecrec,traceback,1641.2800,,0.0163,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k5,vecrec,traceback,1013.9100,,0.0264,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k2,vecrec,traceback,3994.8105,,0.0069,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k3,vecrec,traceback,2645.5435,,0.0104,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k4,vecrec,traceback,1580.7805,,0.0175,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k5,vecrec,traceback,1021.6230,,0.0270,True,1534.0,score+alignment
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k6,vecrec,traceback,,,,,,not built
 "smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k7,vecrec,traceback,,,,,,not built
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k8,vecrec,traceback,4697.1515,,0.0057,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k9,vecrec,traceback,1901.8625,,0.0141,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k10,vecrec,traceback,1168.4415,,0.0229,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k11,vecrec,traceback,995.2565,,0.0269,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,seqan3_sw,baseline,traceback,16577.4550,,0.0016,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_stats,baseline,traceback,27974.8995,,0.0010,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_16,baseline,traceback,799.0715,,0.0335,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_16,baseline,traceback,2241.5520,,0.0119,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_16,baseline,traceback,935.8855,,0.0286,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_32,baseline,traceback,1493.8990,,0.0179,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_32,baseline,traceback,3056.3925,,0.0088,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_32,baseline,traceback,1810.0325,,0.0148,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_64,baseline,traceback,6803.0910,,0.0039,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_64,baseline,traceback,5692.0120,,0.0047,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_64,baseline,traceback,8383.6425,,0.0032,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_sat,baseline,traceback,772.5665,,0.0347,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_sat,baseline,traceback,7645.8790,,0.0035,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_sat,baseline,traceback,1403.1505,,0.0191,True,1534.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_8,baseline,traceback,26.7810,,1.0000,,0.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_8,baseline,traceback,5422.2850,,0.0049,,0.0,score+alignment
-"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_8,baseline,traceback,503.4095,,0.0532,,0.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,3555401.3867,,1.0000,True,-39.0,
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k0,vecrec,traceback,6430.7820,,0.0651,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k1,vecrec,traceback,6489.0905,,0.0645,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k2,vecrec,traceback,2537.7450,,0.1650,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k3,vecrec,traceback,2544.1345,,0.1646,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k4,vecrec,traceback,1245.3790,,0.3362,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k5,vecrec,traceback,1244.6730,,0.3364,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k6,vecrec,traceback,594.5495,,0.7042,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k7,vecrec,traceback,619.2470,,0.6761,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k8,vecrec,traceback,501.1860,,0.8354,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k9,vecrec,traceback,496.6790,,0.8430,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k10,vecrec,traceback,521.2420,,0.8033,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k11,vecrec,traceback,524.3010,,0.7986,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k12,vecrec,traceback,561.8740,,0.7452,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k13,vecrec,traceback,7197.1275,,0.0582,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k14,vecrec,traceback,7163.4810,,0.0584,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k15,vecrec,traceback,2407.1900,,0.1739,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k16,vecrec,traceback,2406.7995,,0.1740,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k17,vecrec,traceback,1160.6545,,0.3607,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k18,vecrec,traceback,1158.7815,,0.3613,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k19,vecrec,traceback,708.3530,,0.5911,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k20,vecrec,traceback,707.1610,,0.5921,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k21,vecrec,traceback,458.2205,,0.9138,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k22,vecrec,traceback,462.0915,,0.9061,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k23,vecrec,traceback,419.5520,,0.9980,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k24,vecrec,traceback,426.4570,,0.9818,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k25,vecrec,traceback,418.6995,,1.0000,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k0,vecrec,traceback,7858.6085,,0.0533,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k1,vecrec,traceback,7871.7440,,0.0532,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k2,vecrec,traceback,2371.8610,,0.1765,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k3,vecrec,traceback,2382.0515,,0.1758,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k4,vecrec,traceback,1113.1325,,0.3761,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k5,vecrec,traceback,1108.1340,,0.3778,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k6,vecrec,traceback,873.2605,,0.4795,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k7,vecrec,traceback,839.7340,,0.4986,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k8,vecrec,traceback,880.4660,,0.4755,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k9,vecrec,traceback,890.9270,,0.4700,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k10,vecrec,traceback,965.2105,,0.4338,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k11,vecrec,traceback,8168.1625,,0.0513,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k12,vecrec,traceback,8130.5695,,0.0515,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k13,vecrec,traceback,2169.7670,,0.1930,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k14,vecrec,traceback,2180.8090,,0.1920,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k15,vecrec,traceback,1177.6760,,0.3555,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k16,vecrec,traceback,1171.4910,,0.3574,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k17,vecrec,traceback,788.6305,,0.5309,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k18,vecrec,traceback,806.7030,,0.5190,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k19,vecrec,traceback,715.2740,,0.5854,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k20,vecrec,traceback,721.9485,,0.5800,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k21,vecrec,traceback,715.2635,,0.5854,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k0,vecrec,traceback,8814.4700,,0.0475,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k1,vecrec,traceback,8228.6145,,0.0509,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k2,vecrec,traceback,2241.7820,,0.1868,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k3,vecrec,traceback,2138.8850,,0.1958,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k4,vecrec,traceback,1603.1910,,0.2612,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k5,vecrec,traceback,1599.6805,,0.2617,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k6,vecrec,traceback,1682.9580,,0.2488,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k7,vecrec,traceback,1660.9540,,0.2521,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k8,vecrec,traceback,1858.7465,,0.2253,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k9,vecrec,traceback,8463.4635,,0.0495,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k10,vecrec,traceback,8486.1780,,0.0493,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k11,vecrec,traceback,2124.9530,,0.1970,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k12,vecrec,traceback,2137.3370,,0.1959,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k13,vecrec,traceback,1481.2295,,0.2827,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k14,vecrec,traceback,1487.7745,,0.2814,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k15,vecrec,traceback,1343.4085,,0.3117,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k16,vecrec,traceback,1360.3145,,0.3078,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k17,vecrec,traceback,1358.0510,,0.3083,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_stats,baseline,traceback,19817.2295,,0.0211,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_16,baseline,traceback,1918.8780,,0.2182,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_16,baseline,traceback,2108.0280,,0.1986,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_16,baseline,traceback,723.6160,,0.5786,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_32,baseline,traceback,2633.2255,,0.1590,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_32,baseline,traceback,2982.6845,,0.1404,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_32,baseline,traceback,1382.5535,,0.3028,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_64,baseline,traceback,7697.1970,,0.0544,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_64,baseline,traceback,4549.8605,,0.0920,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_64,baseline,traceback,7451.9965,,0.0562,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_sat,baseline,traceback,2326.3920,,0.1800,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_sat,baseline,traceback,6053.7445,,0.0692,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_sat,baseline,traceback,1058.7380,,0.3955,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_8,baseline,traceback,532.2640,,0.7866,,0.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_8,baseline,traceback,4061.8845,,0.1031,,0.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_8,baseline,traceback,450.9145,,0.9286,,0.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,wfa2_affine,baseline,traceback,11065.0700,,0.0378,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_gg2_sse,baseline,traceback,1927.5070,,0.2172,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_extz2_sse,baseline,traceback,1190.6905,,0.3516,True,-39.0,score+alignment
-"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_extd2_sse,baseline,traceback,1623.8625,,0.2578,True,-39.0,score+alignment
-"needleman-wunsch-sim65 (2048x2048, seed=0)",needleman-wunsch-sim65,2048,2048,0,4194304,wfa2_nw,baseline,traceback,1501.4455,,1.0000,True,2243.0,score+alignment
-"needleman-wunsch-sim85 (2048x2048, seed=0)",needleman-wunsch-sim85,2048,2048,0,4194304,wfa2_nw,baseline,traceback,377.2065,,1.0000,True,3229.0,score+alignment
-"affine-gap-sim65 (2048x2048, seed=0)",affine-gap-sim65,2048,2048,0,4194304,wfa2_affine,baseline,traceback,2826.7060,,1.0000,True,1945.0,score+alignment
-"affine-gap-sim85 (2048x2048, seed=0)",affine-gap-sim85,2048,2048,0,4194304,wfa2_affine,baseline,traceback,485.7530,,1.0000,True,3175.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k8,vecrec,traceback,3093.7320,,0.0089,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k9,vecrec,traceback,1981.0455,,0.0139,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k10,vecrec,traceback,1135.1910,,0.0243,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,vecrec_sw_i32_tb:k11,vecrec,traceback,995.4285,,0.0277,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,seqan3_sw,baseline,traceback,16572.7385,,0.0017,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_stats,baseline,traceback,28372.0495,,0.0010,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_16,baseline,traceback,799.3985,,0.0345,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_16,baseline,traceback,2243.3460,,0.0123,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_16,baseline,traceback,931.2650,,0.0297,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_32,baseline,traceback,1439.1395,,0.0192,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_32,baseline,traceback,2916.6415,,0.0095,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_32,baseline,traceback,1757.1795,,0.0157,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_64,baseline,traceback,6571.6000,,0.0042,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_64,baseline,traceback,5689.8105,,0.0049,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_64,baseline,traceback,8215.3305,,0.0034,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_sat,baseline,traceback,733.2180,,0.0377,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_sat,baseline,traceback,7701.2225,,0.0036,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_sat,baseline,traceback,1302.6315,,0.0212,True,1534.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_striped_8,baseline,traceback,27.6170,,1.0000,,0.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_diag_8,baseline,traceback,5050.6110,,0.0055,,0.0,score+alignment
+"smith-waterman (2048x2048, seed=0)",smith-waterman,2048,2048,0,4194304,parasail_sw_scan_8,baseline,traceback,504.2485,,0.0548,,0.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,numpy_loop,baseline,full_matrix,3406543.9869,,1.0000,True,-39.0,
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k0,vecrec,traceback,6486.1465,,0.0597,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k1,vecrec,traceback,6440.3610,,0.0601,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k2,vecrec,traceback,2543.7590,,0.1522,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k3,vecrec,traceback,2546.5480,,0.1520,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k4,vecrec,traceback,1246.8460,,0.3105,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k5,vecrec,traceback,1243.4915,,0.3113,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k6,vecrec,traceback,595.7385,,0.6498,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k7,vecrec,traceback,593.3045,,0.6525,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k8,vecrec,traceback,564.9015,,0.6853,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k9,vecrec,traceback,500.0525,,0.7741,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k10,vecrec,traceback,524.8205,,0.7376,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k11,vecrec,traceback,530.6795,,0.7295,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k12,vecrec,traceback,557.6400,,0.6942,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k13,vecrec,traceback,7499.7270,,0.0516,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k14,vecrec,traceback,7473.7480,,0.0518,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k15,vecrec,traceback,2401.9475,,0.1612,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k16,vecrec,traceback,2406.2195,,0.1609,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k17,vecrec,traceback,1085.1150,,0.3567,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k18,vecrec,traceback,1163.1640,,0.3328,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k19,vecrec,traceback,704.4040,,0.5496,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k20,vecrec,traceback,705.4760,,0.5487,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k21,vecrec,traceback,460.7030,,0.8402,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k22,vecrec,traceback,460.5975,,0.8404,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k23,vecrec,traceback,393.3800,,0.9840,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k24,vecrec,traceback,417.5215,,0.9272,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i8_tb:k25,vecrec,traceback,387.1055,,1.0000,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k0,vecrec,traceback,7870.0225,,0.0492,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k1,vecrec,traceback,7881.0840,,0.0491,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k2,vecrec,traceback,2250.8630,,0.1720,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k3,vecrec,traceback,2366.0535,,0.1636,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k4,vecrec,traceback,1107.1190,,0.3497,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k5,vecrec,traceback,1107.4490,,0.3495,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k6,vecrec,traceback,868.9805,,0.4455,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k7,vecrec,traceback,884.6595,,0.4376,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k8,vecrec,traceback,882.9765,,0.4384,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k9,vecrec,traceback,890.4225,,0.4347,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k10,vecrec,traceback,975.4530,,0.3968,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k11,vecrec,traceback,8181.9285,,0.0473,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k12,vecrec,traceback,8110.1995,,0.0477,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k13,vecrec,traceback,2178.5280,,0.1777,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k14,vecrec,traceback,2162.0975,,0.1790,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k15,vecrec,traceback,1203.1400,,0.3217,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k16,vecrec,traceback,1207.5770,,0.3206,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k17,vecrec,traceback,811.6130,,0.4770,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k18,vecrec,traceback,813.2600,,0.4760,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k19,vecrec,traceback,737.0335,,0.5252,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k20,vecrec,traceback,731.6160,,0.5291,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i16_tb:k21,vecrec,traceback,731.3805,,0.5293,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k0,vecrec,traceback,8285.6020,,0.0467,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k1,vecrec,traceback,8247.1590,,0.0469,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k2,vecrec,traceback,2238.8000,,0.1729,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k3,vecrec,traceback,2146.2680,,0.1804,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k4,vecrec,traceback,1636.4655,,0.2365,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k5,vecrec,traceback,1587.8970,,0.2438,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k6,vecrec,traceback,1640.6420,,0.2359,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k7,vecrec,traceback,1636.9565,,0.2365,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k8,vecrec,traceback,1794.0770,,0.2158,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k9,vecrec,traceback,8453.5285,,0.0458,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k10,vecrec,traceback,8485.0015,,0.0456,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k11,vecrec,traceback,2075.3650,,0.1865,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k12,vecrec,traceback,2101.5705,,0.1842,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k13,vecrec,traceback,1519.2975,,0.2548,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k14,vecrec,traceback,1517.7400,,0.2551,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k15,vecrec,traceback,1264.1280,,0.3062,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k16,vecrec,traceback,1385.2625,,0.2794,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,vecrec_affine_i32_tb:k17,vecrec,traceback,1373.2495,,0.2819,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_stats,baseline,traceback,20539.7495,,0.0188,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_16,baseline,traceback,1917.6245,,0.2019,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_16,baseline,traceback,2103.5030,,0.1840,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_16,baseline,traceback,724.5350,,0.5343,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_32,baseline,traceback,2562.0085,,0.1511,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_32,baseline,traceback,2598.9090,,0.1489,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_32,baseline,traceback,1394.0515,,0.2777,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_64,baseline,traceback,7518.7135,,0.0515,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_64,baseline,traceback,4428.0290,,0.0874,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_64,baseline,traceback,7171.6390,,0.0540,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_sat,baseline,traceback,2444.0130,,0.1584,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_sat,baseline,traceback,6451.9060,,0.0600,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_sat,baseline,traceback,1166.1540,,0.3320,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_striped_8,baseline,traceback,615.0230,,0.6294,,0.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_diag_8,baseline,traceback,4260.4230,,0.0909,,0.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,parasail_affine_scan_8,baseline,traceback,420.7615,,0.9200,,0.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,wfa2_affine,baseline,traceback,10798.0550,,0.0358,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_gg2_sse,baseline,traceback,1932.4125,,0.2003,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_extz2_sse,baseline,traceback,1183.3445,,0.3271,True,-39.0,score+alignment
+"affine-gap (2048x2048, seed=0)",affine-gap,2048,2048,0,4194304,ksw2_extd2_sse,baseline,traceback,1521.4255,,0.2544,True,-39.0,score+alignment
+"needleman-wunsch-sim65 (2048x2048, seed=0)",needleman-wunsch-sim65,2048,2048,0,4194304,wfa2_nw,baseline,traceback,1500.4080,,1.0000,True,2243.0,score+alignment
+"needleman-wunsch-sim85 (2048x2048, seed=0)",needleman-wunsch-sim85,2048,2048,0,4194304,wfa2_nw,baseline,traceback,377.0450,,1.0000,True,3229.0,score+alignment
+"affine-gap-sim65 (2048x2048, seed=0)",affine-gap-sim65,2048,2048,0,4194304,wfa2_affine,baseline,traceback,2651.8800,,1.0000,True,1945.0,score+alignment
+"affine-gap-sim85 (2048x2048, seed=0)",affine-gap-sim85,2048,2048,0,4194304,wfa2_affine,baseline,traceback,508.9120,,1.0000,True,3175.0,score+alignment
