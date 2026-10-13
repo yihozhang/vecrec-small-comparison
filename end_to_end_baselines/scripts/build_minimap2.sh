@@ -32,8 +32,11 @@ EXT_OBJS="ksw2_extz2_sse41.o ksw2_extd2_sse41.o ksw2_exts2_sse41.o \
           ksw2_extz2_sse2.o ksw2_extd2_sse2.o ksw2_exts2_sse2.o \
           ksw2_dispatch.o"
 NEED_EXTS2_REBUILD=1
-# Linux: libstdc++ provides the C++ runtime (new/delete) for the VecRec wrapper.
-CXXRT="-lstdc++"
+# Link the C++ runtime used by clang++ for the VecRec wrapper.
+case "$(uname -s)" in
+    Darwin) CXXRT="-lc++" ;;
+    *)      CXXRT="-lstdc++" ;;
+esac
 
 # ── 2b. Optional local zlib (for hosts without zlib dev headers) ──────────────
 # minimap2's own .c files need zlib.h and -lz. If the system lacks the dev
@@ -43,11 +46,9 @@ CXXRT="-lstdc++"
 # and the link rule ignores the latter).
 ZLIB_INC=""
 ZLIB_LD=""
-ZLIB_MK_INCLUDES=()
 if [ -n "${ZLIB_DIR:-}" ]; then
     ZLIB_INC="-I${ZLIB_DIR}"
     ZLIB_LD="-L${ZLIB_DIR}"
-    ZLIB_MK_INCLUDES=("INCLUDES=${ZLIB_INC}")
 fi
 
 # ── 2c. Preflight: minimap2 needs zlib.h and -lz ─────────────────────────────
@@ -86,13 +87,11 @@ fi
 DEBUG="${DEBUG:-0}"
 if [ "$DEBUG" = "1" ]; then
     BIN_SUFFIX="_debug"
-    CFLAGS_MK=("CFLAGS=-g -O0 -Wall -Wc++-compat")
     VECREC_OPT="-O0 -g"
     EXTS2_OPT="-O0 -g"
     echo "DEBUG build: -O0 -g (binaries get the '${BIN_SUFFIX}' suffix)"
 else
     BIN_SUFFIX=""
-    CFLAGS_MK=()
     VECREC_OPT="-O3 -march=native"
     EXTS2_OPT="-O3"
 fi
@@ -127,7 +126,15 @@ if [ "${VECREC_UNSAFE:-0}" = "1" ]; then
     CPP_DEFS="$CPP_DEFS -DVR_UNSAFE"
     echo "UNSAFE build: minimap2 CIGAR-span asserts disabled (timing-only ablation)"
 fi
-CPPFLAGS_MK=("CPPFLAGS=$CPP_DEFS")
+# Keep this array nonempty: macOS's Bash 3.2 treats expansion of an empty array
+# as an unbound variable under `set -u`.
+MAKE_ARGS=(-j4 "CPPFLAGS=$CPP_DEFS")
+if [ "$DEBUG" = "1" ]; then
+    MAKE_ARGS+=("CFLAGS=-g -O0 -Wall -Wc++-compat")
+fi
+if [ -n "$ZLIB_INC" ]; then
+    MAKE_ARGS+=("INCLUDES=$ZLIB_INC")
+fi
 
 # ── 4a. Build minimap2-original ───────────────────────────────────────────────
 # Always clean first so libminimap2.a is rebuilt from stock ksw2 sources,
@@ -135,7 +142,7 @@ CPPFLAGS_MK=("CPPFLAGS=$CPP_DEFS")
 echo "Building minimap2-original (clean build)..."
 cd "$MM2"
 make $MAKE_FLAGS clean 2>/dev/null || true
-make $MAKE_FLAGS -j4 "${CFLAGS_MK[@]}" "${CPPFLAGS_MK[@]}" "${ZLIB_MK_INCLUDES[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread"
+make $MAKE_FLAGS "${MAKE_ARGS[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread"
 cp minimap2 "$REPO/bin/minimap2_original${BIN_SUFFIX}"
 echo "  >> bin/minimap2_original${BIN_SUFFIX}  ✓"
 
@@ -198,7 +205,7 @@ ar r libminimap2.a "$EXTD2_ORIG_OBJ" "$EXTZ2_ORIG_OBJ"
 # Force re-link by removing the binary; add the C++ runtime (new/delete) — its
 # name is arch-dependent (libc++ on macOS, libstdc++ on Linux), see CXXRT above.
 rm -f minimap2
-make $MAKE_FLAGS -j4 minimap2 "${CFLAGS_MK[@]}" "${CPPFLAGS_MK[@]}" "${ZLIB_MK_INCLUDES[@]}" "LIBS=${ZLIB_LD} -lm -lz -lpthread $CXXRT"
+make $MAKE_FLAGS "${MAKE_ARGS[@]}" minimap2 "LIBS=${ZLIB_LD} -lm -lz -lpthread $CXXRT"
 
 cp minimap2 "$REPO/bin/minimap2_vecrec${BIN_SUFFIX}"
 echo "  >> bin/minimap2_vecrec${BIN_SUFFIX}  ✓"
