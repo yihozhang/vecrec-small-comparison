@@ -1,0 +1,4 @@
+dataset,scenario,dataset_name,preset,reps,original_ms,vecrec_ms,speedup,original_alns,vecrec_alns,schedule_2p_i16,schedule_2p_i8,schedule_1p_i16,schedule_1p_i8
+ecoli-ultralong,ablation-noapprox-ecoli-ultralong-full,ecoli-ultralong-full,map-ont,5,58656.66214376688,48700.055070221424,1.204447552660646,1125,1108,k14/m4/r2,k8/m4/r4,k7/m4/r1,k10/m4/r1
+ecoli-strains,ablation-noapprox-ecoli-strains-mapont,ecoli-strains-real,map-ont,5,5189.031194895506,4368.666123598814,1.18778387912622,182,183,k14/m4/r2,k8/m4/r4,k7/m4/r1,k10/m4/r1
+pa-strains,ablation-noapprox-pa-strains,pa-strains-real,map-ont,5,1756.5775401890278,1693.0717770010233,1.0375091972181438,110,110,k14/m4/r2,k8/m4/r4,k7/m4/r1,k10/m4/r1
